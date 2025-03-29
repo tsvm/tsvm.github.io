@@ -11,54 +11,35 @@ redirect_from:
 
 Education
 ======
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
-* M.S. in Jekyll, GitHub University, 2014
-* B.S. in GitHub, GitHub University, 2012
+* PhD in Machine Learning and Natural Language Processing. Instituto de
+Telecomunicacoes, Instituto Superior Tecnico, Lisbon, Portugal, 2022
+* Master of Information Technology: Information Retrieval and Knowledge Discovery,
+Sofia University "St. Kliment Ohridski", Sofia, Bulgaria, 2017
+* Master of Informatics: IT Project Management, New Bulgarian University, Sofia,
+Bulgaria, 2015
+* Bachelor of Computer Engineering, Technical University of Sofia, Sofia, Bulgaria, 2009
 
-Work experience
+Work Experience
 ======
-* Spring 2024: Academic Pages Collaborator
-  * GitHub University
-  * Duties includes: Updates and improvements to template
-  * Supervisor: The Users
+* April 2025 - Current: Postdoctoral Researcher, Department of Computer Science, Aalto University, Espoo, Finland.
+  * I use language models for personalized learning of computer science.
 
-* Fall 2015: Research Assistant
-  * GitHub University
-  * Duties included: Merging pull requests
-  * Supervisor: Professor Hub
+* March 2023 - March 2025: Postdoctoral Researcher, Department of Electrical Engineering and Automation, Aalto University, Espoo, Finland.
+  * In the Intelligent Robotics group I work on situation awareness and human-robot
+interaction, with a focus on using foundation models for robotic applications.
 
-* Summer 2015: Research Assistant
-  * GitHub University
-  * Duties included: Tagging issues
-  * Supervisor: Professor Git
+* January 2007 - October 2016: Software development
+  * Before my academic career, I worked for ten years as a software developer in industry. I have lead
+small teams and mentored junior colleagues and I gained expertise in the full software development
+lifecycle – from gathering customer requirements through creating system architecture,
+implementation, testing, deployment, and maintenance of products actively used by customers.
   
-Skills
-======
-* Skill 1
-* Skill 2
-  * Sub-skill 2.1
-  * Sub-skill 2.2
-  * Sub-skill 2.3
-* Skill 3
 
-Publications
+Organizational Experience in Academia
 ======
-  <ul>{% for post in site.publications reversed %}
-    {% include archive-single-cv.html %}
-  {% endfor %}</ul>
-  
-Talks
-======
-  <ul>{% for post in site.talks reversed %}
-    {% include archive-single-talk-cv.html  %}
-  {% endfor %}</ul>
-  
-Teaching
-======
-  <ul>{% for post in site.teaching reversed %}
-    {% include archive-single-cv.html %}
-  {% endfor %}</ul>
-  
-Service and leadership
-======
-* Currently signed in to 43 different slack teams
+* I am part of the organizing team of an [IV 2025 Workshop on Safe and Trustworthy Autonomous Driving](https://trust-ad.github.io/).
+* I was one of the organizers of an [IV 2024 workshop on autonomous vehicles](https://safeav.github.io/).
+* I was in the organizing committee of a [student research workshop](https://aclanthology.org/2021.ranlp-srw.0/) in 2021.
+* In 2019 I was lecturer in a [tutorial](https://aclanthology.org/P19-4001/) on Latent Structures for Natural Language Processing, presented in ACL.
+* In 2019, I was the lead organizer of a [shared task](https://aclanthology.org/S19-2149/) on Fact-Checking in Community Question Answering.
+
