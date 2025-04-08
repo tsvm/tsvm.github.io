@@ -13,7 +13,7 @@ title                    : "Tsvetomila Mihaylova"
 title_separator          : "-"
 name                     : &name "Tsvetomila Mihaylova"
 description              : &description "Postdoctoral Researcher"
-url                      : https://tsvm.github.io # the base hostname & protocol for your site e.g. "https://[your GitHub username].github.io"
+url                      : https://tsvm.net # the base hostname & protocol for your site e.g. "https://[your GitHub username].github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "tsvm/tsvm.github.io"
 
@@ -23,7 +23,7 @@ repository               : "tsvm/tsvm.github.io"
 author:
   # Biographic information
   avatar           : "profile.jpg"
-  name             : "Dr. Tsvetomila Mihaylova"
+  name             : "Tsvetomila Mihaylova, PhD"
   pronouns         : # example: "she/her"  
   bio              : "Postdoctoral Researcher, NLP, ML"
   location         : "Espoo, Finland"
