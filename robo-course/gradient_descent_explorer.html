@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Descent Explorer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { background:#0d0f14; color:#e8eaf0; font-family:system-ui,-apple-system,sans-serif; line-height:1.6; }
+
+.hero { padding:56px 36px 40px; max-width:860px; margin:0 auto; }
+.hero-tag { font-family:monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#5b8dff; margin-bottom:12px; }
+.hero h1 { font-size:clamp(28px,5vw,46px); font-weight:400; line-height:1.1; margin-bottom:12px; }
+.hero p { font-size:15px; color:#7a7f96; max-width:560px; font-weight:300; }
+
+.sticky-nav { position:sticky; top:0; z-index:50; background:rgba(13,15,20,.95); border-bottom:1px solid rgba(255,255,255,0.08); padding:10px 36px; display:flex; gap:8px; overflow-x:auto; }
+.pill { font-family:monospace; font-size:11px; letter-spacing:.05em; padding:5px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); background:#13161e; color:#7a7f96; cursor:pointer; white-space:nowrap; text-decoration:none; transition:all .2s; }
+.pill:hover { border-color:#5b8dff; color:#5b8dff; }
+
+.section { max-width:860px; margin:0 auto; padding:48px 36px; border-bottom:1px solid rgba(255,255,255,0.07); }
+.section:last-child { border-bottom:none; padding-bottom:80px; }
+.sec-num { font-family:monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#3d4158; margin-bottom:10px; }
+.sec-title { font-size:clamp(20px,3vw,28px); font-weight:400; line-height:1.15; margin-bottom:8px; }
+.sec-desc { font-size:14px; color:#7a7f96; max-width:640px; margin-bottom:26px; line-height:1.8; }
+.sec-desc strong { color:#e8eaf0; font-weight:500; }
+
+.card { background:#13161e; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:22px; }
+
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+.stat { background:#1a1e2a; border-radius:8px; padding:10px 13px; }
+.slabel { font-family:monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#3d4158; margin-bottom:5px; }
+.sval { font-family:monospace; font-size:17px; font-weight:500; color:#e8eaf0; }
+
+.ctrl { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.clabel { font-size:13px; color:#7a7f96; white-space:nowrap; }
+
+input[type=range] { -webkit-appearance:none; height:4px; border-radius:2px; background:#1a1e2a; cursor:pointer; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#5b8dff; border:2px solid #0d0f14; cursor:pointer; }
+select { font-family:monospace; font-size:12px; padding:5px 10px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:#1a1e2a; color:#e8eaf0; cursor:pointer; }
+
+.btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+button { font-family:monospace; font-size:12px; letter-spacing:.04em; padding:7px 18px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:#1a1e2a; color:#7a7f96; cursor:pointer; transition:all .2s; }
+button:hover { border-color:#5b8dff; color:#5b8dff; }
+
+.note { font-size:13px; color:#7a7f96; margin-top:12px; line-height:1.7; min-height:2.6em; padding:11px 15px; background:#1a1e2a; border-radius:8px; border-left:2px solid #5b8dff; }
+.note strong { color:#e8eaf0; }
+
+canvas { display:block; border-radius:9px; border:1px solid rgba(255,255,255,0.08); background:#0d0f14; }
+
+.two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.plabel { font-family:monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#3d4158; margin-bottom:7px; }
+.psub { font-size:11px; color:#3d4158; margin-bottom:8px; }
+
+@media(max-width:600px){
+  .hero,.section{padding-left:16px;padding-right:16px;}
+  .sticky-nav{padding:10px 16px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .two{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">CS-E400218 · Aalto University · Interactive Demo</div>
+  <h1>Gradient Descent Explorer</h1>
+  <p>Three interactive visualizations — from a single-parameter loss curve, to a 2-parameter surface, to the difference between convex and non-convex landscapes.</p>
+</div>
+
+<nav class="sticky-nav">
+  <a class="pill" href="#s1">01 · 1D loss &amp; gradient</a>
+  <a class="pill" href="#s2">02 · 2-parameter surface</a>
+  <a class="pill" href="#s3">03 · convex vs non-convex</a>
+</nav>
+
+<!-- SECTION 1 -->
+<section class="section" id="s1">
+  <div class="sec-num">01</div>
+  <h2 class="sec-title">Loss function &amp; gradient descent — one parameter</h2>
+  <p class="sec-desc">
+    One parameter θ, one loss value L(θ). The <strong>gradient</strong> is the slope at the current point (green dashed tangent). Each step moves θ in the opposite direction: θ ← θ − η·(dL/dθ).
+    <br><br>
+    <strong>MSE</strong> (mean squared error) is convex — one smooth bowl, always converges. <strong>Cross-entropy</strong> uses a sigmoid: ŷ = 1/(1+e<sup>−θ·x</sup>), L = −log(ŷ) for a positive example — also convex but asymmetric. <strong>Non-convex</strong> has two local minima; where you land depends on the starting point.
+  </p>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><div class="slabel">θ</div><div class="sval" id="v1t">3.000</div></div>
+      <div class="stat"><div class="slabel">L(θ)</div><div class="sval" id="v1l">9.000</div></div>
+      <div class="stat"><div class="slabel">dL/dθ</div><div class="sval" id="v1g">6.000</div></div>
+      <div class="stat"><div class="slabel">step</div><div class="sval" id="v1s">0</div></div>
+    </div>
+    <div class="ctrl">
+      <span class="clabel">η</span>
+      <input type="range" id="r1lr" min="1" max="9" step="1" value="3" style="width:110px;">
+      <span id="o1lr" style="font-family:monospace;font-size:14px;font-weight:500;color:#5b8dff;min-width:28px;">0.3</span>
+      <span class="clabel">Loss</span>
+      <select id="r1fn">
+        <option value="mse">MSE — L = θ²</option>
+        <option value="nc">Non-convex — θ⁴ − 4θ² + θ</option>
+      </select>
+    </div>
+    <canvas id="c1" width="780" height="290" style="width:100%;max-width:780px;"></canvas>
+    <div class="btns">
+      <button id="b1step">Step →</button>
+      <button id="b1run">Run</button>
+      <button id="b1reset">Reset</button>
+    </div>
+    <div class="note" id="n1">Click <strong>Step</strong> to move one gradient descent step, or <strong>Run</strong> to animate.</div>
+  </div>
+</section>
+
+<!-- SECTION 2 -->
+<section class="section" id="s2">
+  <div class="sec-num">02</div>
+  <h2 class="sec-title">Loss over two parameters — y = ax + b</h2>
+  <p class="sec-desc">
+    Your linear model has <strong>two parameters</strong>: slope <em>a</em> and intercept <em>b</em>. The MSE loss is a surface — a paraboloid bowl. Data is normalised (zero mean, unit variance) so the loss scale is well-behaved and gradient descent converges reliably across all learning rates shown.
+  </p>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><div class="slabel">slope a</div><div class="sval" id="v2a">—</div></div>
+      <div class="stat"><div class="slabel">intercept b</div><div class="sval" id="v2b">—</div></div>
+      <div class="stat"><div class="slabel">MSE loss</div><div class="sval" id="v2l">—</div></div>
+      <div class="stat"><div class="slabel">step</div><div class="sval" id="v2s">0</div></div>
+    </div>
+    <div class="two" style="margin-bottom:14px;">
+      <div>
+        <div class="plabel">Contour map of L(a, b)</div>
+        <canvas id="c2a" width="380" height="260" style="width:100%;"></canvas>
+      </div>
+      <div>
+        <div class="plabel">Data fit — current model</div>
+        <canvas id="c2b" width="380" height="260" style="width:100%;"></canvas>
+      </div>
+    </div>
+    <div class="two">
+      <div>
+        <div class="plabel">Loss over steps</div>
+        <canvas id="c2c" width="380" height="120" style="width:100%;"></canvas>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center;gap:14px;padding:4px;">
+        <div>
+          <div class="clabel" style="margin-bottom:7px;">η (learning rate)</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="r2lr" min="1" max="9" step="1" value="4" style="flex:1;">
+            <span id="o2lr" style="font-family:monospace;font-size:14px;font-weight:500;color:#5b8dff;min-width:28px;">0.4</span>
+          </div>
+        </div>
+        <div>
+          <div class="clabel" style="margin-bottom:7px;">Start position</div>
+          <select id="r2start" style="width:100%;">
+            <option value="far">Far from minimum</option>
+            <option value="near">Near minimum</option>
+            <option value="rand">Random</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="b2step">Step →</button>
+      <button id="b2run">Run</button>
+      <button id="b2reset">Reset</button>
+    </div>
+    <div class="note" id="n2">The contour rings are like elevation lines on a topographic map. The red dot is the current model; the centre is the minimum.</div>
+  </div>
+</section>
+
+<!-- SECTION 3 -->
+<section class="section" id="s3">
+  <div class="sec-num">03</div>
+  <h2 class="sec-title">Convex vs non-convex loss landscape</h2>
+  <p class="sec-desc">
+    A <strong>linear model with MSE</strong> produces a perfect paraboloid — one global minimum, guaranteed. Add nonlinear activations and the surface buckles: multiple local minima, saddle points, flat plateaus. <strong>Drag either surface to rotate it.</strong>
+  </p>
+  <div class="card">
+    <div class="two">
+      <div>
+        <div class="plabel">Convex · linear model + MSE</div>
+        <div class="psub">One global minimum — always converges</div>
+        <canvas id="c3a" width="380" height="300" style="width:100%;cursor:grab;"></canvas>
+      </div>
+      <div>
+        <div class="plabel">Non-convex · neural network</div>
+        <div class="psub">Multiple local minima, saddle points, plateaus</div>
+        <canvas id="c3b" width="380" height="300" style="width:100%;cursor:grab;"></canvas>
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px;">Drag either surface to rotate. The left has exactly one valley. The right has several traps — gradient descent may settle in any of them depending on starting position and η.</div>
+  </div>
+</section>
+
+<script>
+/* ── shared colour helper ── */
+function cc(t){ return 'rgb('+Math.round(20+t*130)+','+Math.round(40+t*20)+','+Math.round(160-t*70)+')'; }
+
+/* ════════════════════════════════════
+   SECTION 1 — 1D loss
+════════════════════════════════════ */
+(function(){
+  // Cross-entropy: logistic regression, single feature x=1 (so θ is the weight*feature)
+  // yhat = sigmoid(θ), label y=1, L = -log(yhat) = -log(sigmoid(θ)) = log(1+exp(-θ))
+  // dL/dθ = sigmoid(θ) - 1 = -sigmoid(-θ)
+  // This gives a clean decreasing curve on [-4,4], minimum at +∞, so we bound to [-1, 5]
+  // We shift: use x=1, y=1, so it's predicting "positive class"
+  // For visualisation we plot over a bounded range
+  function sigmoid(t){ return 1/(1+Math.exp(-t)); }
+
+  var FNS = {
+    mse: {
+      fn:   function(t){ return t*t; },
+      grad: function(t){ return 2*t; },
+      range:[-4, 4], start:3,
+      label:'L = θ²',
+      note: 'MSE on a linear model. Convex, symmetric bowl — gradient points directly toward the minimum at θ = 0.'
+    },
+    ce: {
+      fn:   function(t){ return Math.log(1+Math.exp(-t)); },   // -log(sigmoid(t))
+      grad: function(t){ return -sigmoid(-t); },               // sigmoid(t) - 1
+      range:[-1, 6], start:-0.8,
+      label:'L = −log σ(θ)',
+      note: 'Cross-entropy for a binary classifier (label = 1). Convex but asymmetric — flat on the right as σ(θ) → 1, steep on the left. Minimum at θ → +∞; in practice we stop when loss is small enough.'
+    },
+    nc: {
+      fn:   function(t){ return t*t*t*t - 4*t*t + t; },
+      grad: function(t){ return 4*t*t*t - 8*t + 1; },
+      range:[-2.4, 2.4], start:2.1,
+      label:'L = θ⁴ − 4θ² + θ',
+      note: 'Non-convex loss — two local minima. Where gradient descent settles depends on the starting point. Try resetting with different η values.'
+    }
+  };
+
+  var L = FNS.mse, eta = 0.3, theta, stepN, trail, running = false, timer = null;
+  var cv = document.getElementById('c1'), ctx = cv.getContext('2d');
+  var W = 780, H = 290;
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var tMin=L.range[0], tMax=L.range[1];
+    var ys=[]; for(var t=tMin;t<=tMax;t+=0.05) ys.push(L.fn(t));
+    var lMin=Math.min.apply(null,ys)-0.3, lMax=Math.max.apply(null,ys)+0.8;
+
+    function sc(t,l){ return [50+(t-tMin)/(tMax-tMin)*(W-66), H-38-(l-lMin)/(lMax-lMin)*(H-54)]; }
+
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=0.5;
+    for(var t=Math.ceil(tMin);t<=Math.floor(tMax);t++){
+      var p=sc(t,lMin); ctx.beginPath(); ctx.moveTo(p[0],10); ctx.lineTo(p[0],H-38); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px monospace'; ctx.textAlign='center'; ctx.fillText(t,p[0],H-20);
+    }
+    var lvStep=Math.max(0.5,Math.ceil((lMax-lMin)/5*2)/2);
+    for(var lv=Math.ceil(lMin*2)/2; lv<=lMax; lv+=lvStep){
+      var p=sc(tMin,lv); ctx.beginPath(); ctx.moveTo(50,p[1]); ctx.lineTo(W-16,p[1]); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='11px monospace'; ctx.textAlign='right'; ctx.fillText(lv.toFixed(1),46,p[1]+4);
+    }
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='12px system-ui'; ctx.textAlign='center';
+    ctx.fillText('θ',W/2,H-5);
+    ctx.save(); ctx.translate(12,H/2); ctx.rotate(-Math.PI/2); ctx.fillText('L(θ)',0,0); ctx.restore();
+
+    // formula label
+    ctx.fillStyle='rgba(91,141,255,0.7)'; ctx.font='12px monospace'; ctx.textAlign='left';
+    ctx.fillText(L.label, 58, 22);
+
+    // trail dots
+    for(var i=0;i<trail.length;i++){
+      var p=sc(trail[i][0],trail[i][1]);
+      ctx.beginPath(); ctx.arc(p[0],p[1],3,0,Math.PI*2);
+      ctx.fillStyle='rgba(91,141,255,0.28)'; ctx.fill();
+    }
+
+    // loss curve
+    ctx.beginPath(); var first=true;
+    for(var t=tMin;t<=tMax;t+=0.015){
+      var p=sc(t,L.fn(t)); first?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]); first=false;
+    }
+    ctx.strokeStyle='#5b8dff'; ctx.lineWidth=2.5; ctx.stroke();
+
+    // tangent
+    var g=L.grad(theta), lth=L.fn(theta), dt=(tMax-tMin)*0.14;
+    var t1=sc(theta-dt, lth-g*dt), t2=sc(theta+dt, lth+g*dt);
+    ctx.beginPath(); ctx.moveTo(t1[0],t1[1]); ctx.lineTo(t2[0],t2[1]);
+    ctx.strokeStyle='#50d9a0'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+    var bp=sc(theta,lth);
+    ctx.fillStyle='#50d9a0'; ctx.font='11px monospace'; ctx.textAlign='left';
+    ctx.fillText('slope = '+g.toFixed(3), bp[0]+11, bp[1]-13);
+
+    // ball
+    ctx.beginPath(); ctx.arc(bp[0],bp[1],9,0,Math.PI*2);
+    ctx.fillStyle='#E24B4A'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    document.getElementById('v1t').textContent=theta.toFixed(3);
+    document.getElementById('v1l').textContent=lth.toFixed(4);
+    document.getElementById('v1g').textContent=g.toFixed(4);
+    document.getElementById('v1s').textContent=stepN;
+  }
+
+  function doStep(){
+    var g=L.grad(theta), prev=theta, prevL=L.fn(theta);
+    trail.push([theta,prevL]);
+    theta-=eta*g;
+    theta=Math.max(L.range[0]+.01,Math.min(L.range[1]-.01,theta));
+    stepN++;
+    draw();
+    var newL=L.fn(theta), note=document.getElementById('n1');
+    if(Math.abs(theta-prev)<0.00015){
+      stopRun(); note.innerHTML='<strong>Converged!</strong> Gradient ≈ 0 — settled at a minimum.';
+    } else if(newL>prevL*2 && stepN>2){
+      stopRun(); note.innerHTML='Loss increased — η too large (overshooting). Try a smaller η and reset.';
+    } else {
+      var dir=g>0?'← decreasing θ':'→ increasing θ';
+      note.innerHTML='dL/dθ = '+g.toFixed(4)+' &nbsp;·&nbsp; step = '+( eta*Math.abs(g)).toFixed(4)+' &nbsp;'+dir+'.';
+    }
+  }
+
+  function stopRun(){ running=false; clearInterval(timer); document.getElementById('b1run').textContent='Run'; }
+
+  function reset(){
+    stopRun(); L=FNS[document.getElementById('r1fn').value];
+    theta=L.start; stepN=0; trail=[]; draw();
+    document.getElementById('n1').innerHTML=L.note;
+  }
+
+  document.getElementById('b1step').onclick=function(){ stopRun(); doStep(); };
+  document.getElementById('b1run').onclick=function(){
+    if(running){ stopRun(); return; }
+    running=true; document.getElementById('b1run').textContent='Pause';
+    timer=setInterval(function(){ doStep(); if(!running) clearInterval(timer); }, 400);
+  };
+  document.getElementById('b1reset').onclick=reset;
+  document.getElementById('r1lr').oninput=function(e){
+    eta=+e.target.value/10; document.getElementById('o1lr').textContent=eta.toFixed(1); draw();
+  };
+  document.getElementById('r1fn').onchange=reset;
+  reset();
+})();
+
+/* ════════════════════════════════════
+   SECTION 2 — 2D contour + data fit
+   Uses normalised data so loss scale ~ O(1) and eta 0.1–0.9 all work
+════════════════════════════════════ */
+(function(){
+  // Raw data
+  var RAW=[[28,130],[40,165],[50,210],[57,240],[65,250],[72,280],[80,300],[90,290],[100,340],[110,315],[130,380],[155,420]];
+
+  // Compute mean and std for normalisation
+  var xm=0,ym=0;
+  for(var i=0;i<RAW.length;i++){ xm+=RAW[i][0]; ym+=RAW[i][1]; }
+  xm/=RAW.length; ym/=RAW.length;
+  var xs=0,ys=0;
+  for(var i=0;i<RAW.length;i++){ xs+=(RAW[i][0]-xm)*(RAW[i][0]-xm); ys+=(RAW[i][1]-ym)*(RAW[i][1]-ym); }
+  xs=Math.sqrt(xs/RAW.length); ys=Math.sqrt(ys/RAW.length);
+
+  // Normalised dataset
+  var DATA=[];
+  for(var i=0;i<RAW.length;i++) DATA.push([(RAW[i][0]-xm)/xs, (RAW[i][1]-ym)/ys]);
+
+  // True min in normalised space (pre-computed)
+  var TA=0.971, TB=0.0;
+
+  function mse(a,b){ var s=0; for(var i=0;i<DATA.length;i++){ var e=a*DATA[i][0]+b-DATA[i][1]; s+=e*e; } return s/DATA.length; }
+  function gA(a,b){ var s=0; for(var i=0;i<DATA.length;i++) s+=(a*DATA[i][0]+b-DATA[i][1])*DATA[i][0]; return 2*s/DATA.length; }
+  function gB(a,b){ var s=0; for(var i=0;i<DATA.length;i++) s+=(a*DATA[i][0]+b-DATA[i][1]); return 2*s/DATA.length; }
+
+  var eta=0.4, a, b, sn, trail, lhist, running=false, timer=null;
+  var STARTS={
+    far:  function(){ return [2.5, 1.2]; },
+    near: function(){ return [1.1, 0.3]; },
+    rand: function(){ return [-1+Math.random()*3.5, -1.5+Math.random()*3]; }
+  };
+
+  var c2a=document.getElementById('c2a'), x2a=c2a.getContext('2d'), W2=380, H2a=260;
+  var c2b=document.getElementById('c2b'), x2b=c2b.getContext('2d'), H2b=260;
+  var c2c=document.getElementById('c2c'), x2c=c2c.getContext('2d'), H2c=120;
+
+  var contourImg=null;
+  function buildContour(){
+    var W=W2, H=H2a;
+    var aMin=-0.5,aMax=3.0,bMin=-2.0,bMax=2.0;
+    var img=x2a.createImageData(W,H);
+    var lMin=Infinity,lMax=-Infinity;
+    for(var px=0;px<W;px+=4)for(var py=0;py<H;py+=4){
+      var av=aMin+(px-14)/(W-28)*(aMax-aMin),bv=bMin+(H-18-py)/(H-30)*(bMax-bMin);
+      if(av>=aMin&&av<=aMax&&bv>=bMin&&bv<=bMax){ var l=mse(av,bv); if(l<lMin)lMin=l; if(l>lMax)lMax=l; }
+    }
+    for(var px=0;px<W;px++)for(var py=0;py<H;py++){
+      var av=aMin+(px-14)/(W-28)*(aMax-aMin),bv=bMin+(H-18-py)/(H-30)*(bMax-bMin);
+      if(av<aMin||av>aMax||bv<bMin||bv>bMax)continue;
+      var t=Math.min(1,(mse(av,bv)-lMin)/(lMax-lMin));
+      var idx=(py*W+px)*4;
+      img.data[idx]=Math.round(20+t*120); img.data[idx+1]=Math.round(30+t*20); img.data[idx+2]=Math.round(80+t*80); img.data[idx+3]=220;
+    }
+    contourImg=img;
+  }
+
+  function drawContour(){
+    var W=W2,H=H2a;
+    x2a.clearRect(0,0,W,H);
+    var aMin=-0.5,aMax=3.0,bMin=-2.0,bMax=2.0;
+    function sc(av,bv){ return [14+(av-aMin)/(aMax-aMin)*(W-28), H-18-(bv-bMin)/(bMax-bMin)*(H-30)]; }
+    if(contourImg) x2a.putImageData(contourImg,0,0);
+
+    // true min
+    var mp=sc(TA,TB);
+    x2a.beginPath(); x2a.arc(mp[0],mp[1],6,0,Math.PI*2);
+    x2a.strokeStyle='#ffc46b'; x2a.lineWidth=2; x2a.fillStyle='transparent'; x2a.fill(); x2a.stroke();
+    x2a.fillStyle='#ffc46b'; x2a.font='10px monospace'; x2a.textAlign='left'; x2a.fillText('min',mp[0]+8,mp[1]+4);
+
+    // trail
+    if(trail.length>1){
+      x2a.beginPath();
+      for(var i=0;i<trail.length;i++){ var p=sc(trail[i][0],trail[i][1]); i===0?x2a.moveTo(p[0],p[1]):x2a.lineTo(p[0],p[1]); }
+      x2a.strokeStyle='rgba(255,255,255,0.65)'; x2a.lineWidth=1.5; x2a.stroke();
+      for(var i=0;i<trail.length-1;i++){
+        var p=sc(trail[i][0],trail[i][1]);
+        x2a.beginPath(); x2a.arc(p[0],p[1],2.5,0,Math.PI*2);
+        x2a.fillStyle='rgba(255,255,255,0.3)'; x2a.fill();
+      }
+    }
+
+    // gradient arrow
+    var cp=sc(a,b), gav=gA(a,b), gbv=gB(a,b), mag=Math.sqrt(gav*gav+gbv*gbv);
+    if(mag>0.001){
+      var s2=18/mag;
+      var ax2=cp[0]-gav*s2*(W-28)/(aMax-aMin)*0.45;
+      var ay2=cp[1]+gbv*s2*(H-30)/(bMax-bMin)*0.45;
+      x2a.beginPath(); x2a.moveTo(cp[0],cp[1]); x2a.lineTo(ax2,ay2);
+      x2a.strokeStyle='#50d9a0'; x2a.lineWidth=2; x2a.stroke();
+    }
+
+    // ball
+    x2a.beginPath(); x2a.arc(cp[0],cp[1],7,0,Math.PI*2);
+    x2a.fillStyle='#E24B4A'; x2a.fill();
+    x2a.strokeStyle='rgba(255,255,255,0.4)'; x2a.lineWidth=1.5; x2a.stroke();
+
+    x2a.fillStyle='rgba(255,255,255,0.3)'; x2a.font='11px monospace'; x2a.textAlign='center';
+    x2a.fillText('a (slope)',W/2,H-4);
+    x2a.save(); x2a.translate(8,H/2); x2a.rotate(-Math.PI/2); x2a.fillText('b (intercept)',0,0); x2a.restore();
+  }
+
+  function drawFit(){
+    var W=W2, H=H2b;
+    x2b.clearRect(0,0,W,H);
+    // draw in normalised space
+    var xMin=-2.0,xMax=2.2,yMin=-2.5,yMax=2.5;
+    function sc(x,y){ return [16+(x-xMin)/(xMax-xMin)*(W-24), H-16-(y-yMin)/(yMax-yMin)*(H-28)]; }
+
+    x2b.strokeStyle='rgba(255,255,255,0.06)'; x2b.lineWidth=0.5;
+    [-1,0,1].forEach(function(x){ var p=sc(x,yMin); x2b.beginPath(); x2b.moveTo(p[0],8); x2b.lineTo(p[0],H-16); x2b.stroke(); });
+    [-2,-1,0,1,2].forEach(function(y){ var p=sc(xMin,y); x2b.beginPath(); x2b.moveTo(16,p[1]); x2b.lineTo(W-8,p[1]); x2b.stroke(); });
+
+    // residuals
+    DATA.forEach(function(d){
+      var p1=sc(d[0],d[1]), p2=sc(d[0],a*d[0]+b);
+      x2b.beginPath(); x2b.moveTo(p1[0],p1[1]); x2b.lineTo(p2[0],p2[1]);
+      x2b.strokeStyle='rgba(226,75,74,0.38)'; x2b.lineWidth=1.2; x2b.stroke();
+    });
+
+    // current model line
+    var l1=sc(xMin,a*xMin+b), l2=sc(xMax,a*xMax+b);
+    x2b.beginPath(); x2b.moveTo(l1[0],l1[1]); x2b.lineTo(l2[0],l2[1]);
+    x2b.strokeStyle='#5b8dff'; x2b.lineWidth=2.5; x2b.stroke();
+
+    // true line
+    var t1=sc(xMin,TA*xMin+TB), t2=sc(xMax,TA*xMax+TB);
+    x2b.beginPath(); x2b.moveTo(t1[0],t1[1]); x2b.lineTo(t2[0],t2[1]);
+    x2b.strokeStyle='rgba(255,196,107,0.5)'; x2b.lineWidth=1.5; x2b.setLineDash([6,4]); x2b.stroke(); x2b.setLineDash([]);
+
+    // data points
+    DATA.forEach(function(d){
+      var p=sc(d[0],d[1]);
+      x2b.beginPath(); x2b.arc(p[0],p[1],4.5,0,Math.PI*2);
+      x2b.fillStyle='rgba(91,141,255,0.55)'; x2b.fill();
+      x2b.strokeStyle='#5b8dff'; x2b.lineWidth=1; x2b.stroke();
+    });
+
+    x2b.font='10px monospace'; x2b.textAlign='left';
+    x2b.fillStyle='#5b8dff';  x2b.fillText('current model',18,18);
+    x2b.fillStyle='rgba(255,196,107,0.7)'; x2b.fillText('true line',18,32);
+    x2b.fillStyle='rgba(226,75,74,0.55)'; x2b.fillText('residuals',18,46);
+    x2b.fillStyle='rgba(255,255,255,0.2)'; x2b.fillText('(normalised space)',18,H-6);
+  }
+
+  function drawHist(){
+    var W=W2, H=H2c;
+    x2c.clearRect(0,0,W,H);
+    if(lhist.length<2) return;
+    var lMin=Math.min.apply(null,lhist)*0.9, lMax=lhist[0]*1.05, n=lhist.length;
+    function sc(i,l){ return [12+(i/Math.max(n-1,1))*(W-20), H-16-(l-lMin)/(lMax-lMin)*(H-24)]; }
+    x2c.strokeStyle='rgba(255,255,255,0.06)'; x2c.lineWidth=0.5;
+    [.25,.5,.75].forEach(function(t){
+      var l=lMin+t*(lMax-lMin), p=sc(0,l);
+      x2c.beginPath(); x2c.moveTo(12,p[1]); x2c.lineTo(W-8,p[1]); x2c.stroke();
+      x2c.fillStyle='rgba(255,255,255,0.25)'; x2c.font='9px monospace'; x2c.textAlign='right';
+      x2c.fillText(l.toFixed(2),10,p[1]+3);
+    });
+    x2c.beginPath();
+    lhist.forEach(function(l,i){ var p=sc(i,l); i===0?x2c.moveTo(p[0],p[1]):x2c.lineTo(p[0],p[1]); });
+    x2c.strokeStyle='#50d9a0'; x2c.lineWidth=2; x2c.stroke();
+    var lp=sc(n-1,lhist[n-1]);
+    x2c.beginPath(); x2c.arc(lp[0],lp[1],4,0,Math.PI*2); x2c.fillStyle='#50d9a0'; x2c.fill();
+    x2c.fillStyle='rgba(255,255,255,0.25)'; x2c.font='10px monospace'; x2c.textAlign='center'; x2c.fillText('steps',W/2,H-2);
+  }
+
+  function drawAll(){
+    document.getElementById('v2a').textContent=a.toFixed(3);
+    document.getElementById('v2b').textContent=b.toFixed(3);
+    document.getElementById('v2l').textContent=mse(a,b).toFixed(4);
+    document.getElementById('v2s').textContent=sn;
+    drawContour(); drawFit(); drawHist();
+  }
+
+  function doStep(){
+    var gav=gA(a,b), gbv=gB(a,b), prev=mse(a,b);
+    a-=eta*gav; b-=eta*gbv;
+    a=Math.max(-0.49,Math.min(2.99,a)); b=Math.max(-1.99,Math.min(1.99,b));
+    sn++; trail.push([a,b]); lhist.push(mse(a,b));
+    var note=document.getElementById('n2');
+    var conv=Math.abs(eta*gav)<0.0003 && Math.abs(eta*gbv)<0.0003;
+    if(conv){ stopRun(); note.innerHTML='<strong>Converged!</strong> Both gradients ≈ 0. Parameters settled at the minimum.'; }
+    else if(mse(a,b)>prev*4 && sn>3){ stopRun(); note.innerHTML='Loss is growing — η too large. Steps are overshooting. Try a smaller η.'; }
+    else{ note.innerHTML='∂L/∂a = '+gav.toFixed(3)+', ∂L/∂b = '+gbv.toFixed(3)+' &nbsp;→&nbsp; a = '+a.toFixed(3)+', b = '+b.toFixed(3)+'.'; }
+    drawAll();
+  }
+
+  function stopRun(){ running=false; clearInterval(timer); document.getElementById('b2run').textContent='Run'; }
+
+  function reset(){
+    stopRun();
+    var key=document.getElementById('r2start').value;
+    var pos=STARTS[key](); a=pos[0]; b=pos[1];
+    sn=0; trail=[[a,b]]; lhist=[mse(a,b)];
+    buildContour(); drawAll();
+    document.getElementById('n2').innerHTML='The contour rings are like elevation lines on a topographic map. The red dot is the current model; the centre is the minimum.';
+  }
+
+  document.getElementById('b2step').onclick=function(){ stopRun(); doStep(); };
+  document.getElementById('b2run').onclick=function(){
+    if(running){ stopRun(); return; }
+    running=true; document.getElementById('b2run').textContent='Pause';
+    timer=setInterval(function(){ doStep(); if(!running) clearInterval(timer); }, 360);
+  };
+  document.getElementById('b2reset').onclick=reset;
+  document.getElementById('r2lr').oninput=function(e){
+    eta=+e.target.value/10; document.getElementById('o2lr').textContent=eta.toFixed(1); reset();
+  };
+  document.getElementById('r2start').onchange=reset;
+  reset();
+})();
+
+/* ════════════════════════════════════
+   SECTION 3 — 3D surfaces
+════════════════════════════════════ */
+(function(){
+  var GRID=28, W3=380, H3=300;
+  var rx1=0.50,ry1=-0.60,rx2=0.50,ry2=-0.60;
+
+  function proj(ax,ay,az,rx,ry){
+    var cx=Math.cos(ry),sx=Math.sin(ry),cy=Math.cos(rx),sy=Math.sin(rx);
+    var x1=ax*cx-az*sx, z1=ax*sx+az*cx;
+    var y1=ay*cy-z1*sy, z2=ay*sy+z1*cy;
+    var s=480/(z2+6);
+    return [W3/2+x1*s, H3*.46-y1*s, z2];
+  }
+
+  function convex(u,v){ return .7*u*u+1.4*v*v+.5*u*v+.3; }
+  function nonconvex(u,v){
+    return .3*(u*u+v*v)
+      -2.2*Math.exp(-((u+1.1)*(u+1.1)+(v+.8)*(v+.8))*1.2)
+      -1.8*Math.exp(-((u-1.2)*(u-1.2)+(v-1.0)*(v-1.0))*1.1)
+      -1.4*Math.exp(-((u+.3)*(u+.3)+(v-1.5)*(v-1.5))*1.4)
+      +.6*Math.exp(-(v*.4-u*.3)*(v*.4-u*.3)*2)*Math.sin(u*1.5)*.5
+      -.5*Math.exp(-((u-.4)*(u-.4)*.4+(v+.2)*(v+.2)*.4))
+      +.4*Math.tanh(u)*Math.tanh(-v)*.8+2.5;
+  }
+
+  function drawSurf(cvId,fn,rx,ry){
+    var cv=document.getElementById(cvId), ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,W3,H3);
+    var vs=[];
+    for(var i=0;i<=GRID;i++) for(var j=0;j<=GRID;j++) vs.push(fn(i/GRID*4-2,j/GRID*4-2));
+    var vMin=Math.min.apply(null,vs), vMax=Math.max.apply(null,vs);
+    function pt(i,j){ var u=i/GRID*4-2,v=j/GRID*4-2; return proj(u,(fn(u,v)-vMin)/(vMax-vMin)*3-.3,v,rx,ry); }
+    var cells=[];
+    for(var i=0;i<GRID;i++) for(var j=0;j<GRID;j++){
+      var p00=pt(i,j),p10=pt(i+1,j),p11=pt(i+1,j+1),p01=pt(i,j+1);
+      var lAvg=(fn(i/GRID*4-2,j/GRID*4-2)+fn((i+1)/GRID*4-2,j/GRID*4-2)+fn(i/GRID*4-2,(j+1)/GRID*4-2)+fn((i+1)/GRID*4-2,(j+1)/GRID*4-2))/4;
+      cells.push({p:[p00,p10,p11,p01],t:Math.max(0,Math.min(1,(lAvg-vMin)/(vMax-vMin))),z:(p00[2]+p10[2]+p11[2]+p01[2])/4});
+    }
+    cells.sort(function(a,b){ return b.z-a.z; });
+    cells.forEach(function(c){
+      ctx.beginPath(); ctx.moveTo(c.p[0][0],c.p[0][1]); ctx.lineTo(c.p[1][0],c.p[1][1]); ctx.lineTo(c.p[2][0],c.p[2][1]); ctx.lineTo(c.p[3][0],c.p[3][1]); ctx.closePath();
+      ctx.fillStyle=cc(c.t); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=.4; ctx.stroke();
+    });
+    function ax(u,ay,v){ return proj(u,ay,v,rx,ry); }
+    var o=ax(-2,-.3,-2);
+    [[ax(2,-.3,-2),'w₁'],[ax(-2,-.3,2),'w₂'],[ax(-2,2.7,-2),'L(w)']].forEach(function(arr){
+      ctx.beginPath(); ctx.moveTo(o[0],o[1]); ctx.lineTo(arr[0][0],arr[0][1]);
+      ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='11px monospace'; ctx.textAlign='center'; ctx.fillText(arr[1],arr[0][0],arr[0][1]-6);
+    });
+  }
+
+  function drawBoth(){ drawSurf('c3a',convex,rx1,ry1); drawSurf('c3b',nonconvex,rx2,ry2); }
+
+  var drag=null;
+  function dn(e,w){ var t=e.touches?e.touches[0]:e; drag={x:t.clientX,y:t.clientY,w:w,rx:w===1?rx1:rx2,ry:w===1?ry1:ry2}; }
+  function mm(e){
+    if(!drag) return; var t=e.touches?e.touches[0]:e;
+    var dx=(t.clientX-drag.x)*.009, dy=(t.clientY-drag.y)*.009;
+    if(drag.w===1){ rx1=Math.max(-.1,Math.min(1.2,drag.rx+dy)); ry1=drag.ry+dx; }
+    else           { rx2=Math.max(-.1,Math.min(1.2,drag.rx+dy)); ry2=drag.ry+dx; }
+    drawBoth();
+  }
+  document.getElementById('c3a').addEventListener('mousedown',function(e){dn(e,1);});
+  document.getElementById('c3b').addEventListener('mousedown',function(e){dn(e,2);});
+  document.getElementById('c3a').addEventListener('touchstart',function(e){dn(e,1);},{passive:true});
+  document.getElementById('c3b').addEventListener('touchstart',function(e){dn(e,2);},{passive:true});
+  window.addEventListener('mousemove',mm);
+  window.addEventListener('touchmove',mm,{passive:true});
+  window.addEventListener('mouseup',function(){drag=null;});
+  window.addEventListener('touchend',function(){drag=null;});
+  drawBoth();
+})();
+</script>
+</body>
+</html>
