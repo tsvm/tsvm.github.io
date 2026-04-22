@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forward Kinematics — Classroom Examples</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #14171f;
+    --surface2: #1c2030;
+    --border: #2a3045;
+    --accent: #e8c547;
+    --accent2: #5bc8af;
+    --accent3: #e07b6a;
+    --text: #d4d8e8;
+    --text-dim: #7a839a;
+    --text-bright: #f0f3ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 0 0 80px 0;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 48px 60px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,197,71,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .tag {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(232,197,71,0.3);
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 300;
+    color: var(--text-bright);
+    line-height: 1.15;
+    max-width: 520px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .subtitle {
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* LAYOUT */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 60px;
+  }
+
+  /* SECTION HEADERS */
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 56px 0 28px;
+  }
+  .section-num {
+    font-family: 'Fraunces', serif;
+    font-size: 64px;
+    font-weight: 600;
+    color: var(--border);
+    line-height: 1;
+    user-select: none;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--text-bright);
+  }
+  .section-title span {
+    display: block;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* DIAGRAM */
+  .diagram-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  svg text { font-family: 'DM Mono', monospace; }
+
+  /* MATH STEPS */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  /* FORMULA */
+  .formula-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+  }
+  .formula-box .formula-line {
+    color: var(--text-bright);
+    font-size: 14px;
+    line-height: 2;
+  }
+  .formula-box .formula-line .var { color: var(--accent); }
+  .formula-box .formula-line .fn  { color: var(--accent2); }
+  .formula-box .formula-line .num { color: var(--accent3); }
+
+  /* RESULT BOX */
+  .result {
+    background: rgba(91,200,175,0.08);
+    border: 1px solid rgba(91,200,175,0.25);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .result-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .result-text {
+    color: var(--accent2);
+    font-size: 15px;
+  }
+  .result-text strong { color: var(--text-bright); }
+
+  /* INSIGHT */
+  .insight {
+    background: rgba(232,197,71,0.06);
+    border: 1px solid rgba(232,197,71,0.2);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .insight strong { color: var(--accent); font-style: normal; }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+  }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(42,48,69,0.5);
+    vertical-align: top;
+  }
+  td:first-child { color: var(--accent); font-weight: 500; }
+  tr:last-child td { border-bottom: none; }
+  td.insight-cell { color: var(--text-dim); font-style: italic; font-size: 12px; }
+
+  /* GRID */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  /* MATRIX */
+  .matrix-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .matrix {
+    position: relative;
+    display: inline-block;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 2;
+  }
+  .matrix::before, .matrix::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 4px;
+    border: 1px solid var(--text-dim);
+  }
+  .matrix::before { left: 0; border-right: none; border-radius: 2px 0 0 2px; }
+  .matrix::after  { right: 0; border-left: none; border-radius: 0 2px 2px 0; }
+  .matrix-row { display: flex; gap: 20px; justify-content: center; }
+  .matrix .val { color: var(--text-bright); min-width: 52px; text-align: right; }
+  .matrix .val.a { color: var(--accent2); }
+  .matrix .val.b { color: var(--accent3); }
+  .matrix .val.c { color: var(--accent); }
+  .times { font-size: 20px; color: var(--text-dim); }
+  .equals { font-size: 20px; color: var(--text-dim); }
+
+  /* CALC STEP */
+  .calc {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 2.2;
+  }
+  .calc .line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .calc .lhs { color: var(--text-dim); min-width: 20px; }
+  .calc .rhs { color: var(--text-bright); }
+  .calc .rhs .hi { color: var(--accent); }
+  .calc .rhs .hi2 { color: var(--accent2); }
+  .calc .rhs .hi3 { color: var(--accent3); }
+  .calc .final { color: var(--accent2); font-weight: 500; margin-left: auto; }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0 0;
+  }
+
+  /* BRIDGE BOX */
+  .bridge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin-top: 48px;
+  }
+  .bridge h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text-bright);
+    margin-bottom: 16px;
+  }
+  .bridge ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bridge ul li {
+    padding-left: 20px;
+    position: relative;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .bridge ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+  .bridge ul li strong { color: var(--text-bright); }
+
+  @media (max-width: 640px) {
+    header, .container { padding-left: 24px; padding-right: 24px; }
+    h1 { font-size: 28px; }
+    .two-col { grid-template-columns: 1fr; }
+    .section-num { font-size: 44px; }
+    .matrix-wrap { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">Robotics · Classroom Notes</div>
+  <h1>Forward Kinematics<br><em>Two Worked Examples</em></h1>
+  <p class="subtitle">2-Link Planar Arm — solved by hand</p>
+</header>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════
+       EXAMPLE 1
+  ══════════════════════════════════════════════ -->
+  <div class="section-label">
+    <div class="section-num">01</div>
+    <div class="section-title">
+      <span>Example 1</span>
+      Finding the End Effector Position
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Setup & Given Values</div>
+    <div class="two-col">
+      <div>
+        <div class="step-label">Link lengths</div>
+        <div style="color:var(--text-bright); margin-bottom:16px;">L₁ = <span style="color:var(--accent)">1 m</span> &nbsp;·&nbsp; L₂ = <span style="color:var(--accent)">1 m</span></div>
+        <div class="step-label">Joint angles</div>
+        <div style="color:var(--text-bright);">θ₁ = <span style="color:var(--accent2)">45°</span> &nbsp;·&nbsp; θ₂ = <span style="color:var(--accent3)">30°</span></div>
+      </div>
+      <div>
+        <div class="step-label">Question</div>
+        <div style="color:var(--text-dim); font-style:italic; font-size:13px;">Where is the end effector (★) in the base frame?</div>
+      </div>
+    </div>
+
+    <div class="diagram-wrap">
+      <svg width="420" height="180" viewBox="0 0 420 180">
+        <!-- Grid lines subtle -->
+        <line x1="40" y1="20" x2="40" y2="160" stroke="#2a3045" stroke-width="1"/>
+        <line x1="20" y1="140" x2="410" y2="140" stroke="#2a3045" stroke-width="1"/>
+        <!-- Axis labels -->
+        <text x="405" y="155" fill="#7a839a" font-size="11">x</text>
+        <text x="28" y="18" fill="#7a839a" font-size="11">y</text>
+
+        <!-- Link 1: from (40,140) at 45° length scaled 120px -->
+        <!-- end of L1: 40+120cos45=124.85, 140-120sin45=55.15 -->
+        <line x1="40" y1="140" x2="125" y2="55" stroke="#5bc8af" stroke-width="3" stroke-linecap="round"/>
+        <!-- Link 2: from (125,55) at 75° length scaled 120px -->
+        <!-- end: 125+120cos75=156.1, 55-120sin75=54.0  -->
+        <line x1="125" y1="55" x2="156" y2="-41" stroke="#e8c547" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- Let's recalculate for visibility: scale=100px per meter -->
+        <!-- L1 end: 40+100*cos45=110.7, 140-100*sin45=69.3 -->
+        <!-- L2 end: 110.7+100*cos75=136.6, 69.3-100*sin75=172.8 — goes off screen -->
+        <!-- Use scale=80px -->
+        <!-- L1: 40+80*0.707=96.6, 140-80*0.707=83.4 -->
+        <!-- L2: 96.6+80*0.259=117.3, 83.4-80*0.966=6.1 -->
+
+        <!-- Redraw with scale 80 -->
+        <line x1="40" y1="140" x2="97" y2="83" stroke="#5bc8af" stroke-width="3" stroke-linecap="round" opacity="0"/>
+        <line x1="97" y1="83" x2="117" y2="6" stroke="#e8c547" stroke-width="3" stroke-linecap="round" opacity="0"/>
+
+        <!-- Clean draw at scale 85 -->
+        <!-- L1 end: 40+85*cos(45)=100.1, 140-85*sin(45)=79.9 ✓ -->
+        <!-- L2 end: 100.1+85*cos(75)=122.1, 79.9-85*sin(75)=79.9-82.1=-2.2 off screen -->
+
+        <!-- Use scale 70 -->
+        <!-- L1: 40+70*0.707=89.5, 140-70*0.707=90.5 -->
+        <!-- L2: 89.5+70*0.259=107.6, 90.5-70*0.966=22.9 -->
+
+        <line x1="40" y1="140" x2="90" y2="91" stroke="#5bc8af" stroke-width="3" stroke-linecap="round"/>
+        <line x1="90" y1="91" x2="108" y2="23" stroke="#e8c547" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- Angle arc θ1 -->
+        <path d="M 65 140 A 25 25 0 0 0 57.7 122.3" stroke="#5bc8af" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
+        <text x="68" y="130" fill="#5bc8af" font-size="11">θ₁=45°</text>
+
+        <!-- Angle arc θ2 at elbow -->
+        <path d="M 90 91 L 115 91" stroke="#2a3045" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="115" y="87" fill="#e8c547" font-size="11">θ₂=30°</text>
+
+        <!-- Points -->
+        <circle cx="40" cy="140" r="6" fill="#14171f" stroke="#5bc8af" stroke-width="2"/>
+        <text x="20" y="158" fill="#7a839a" font-size="11">Base</text>
+
+        <circle cx="90" cy="91" r="5" fill="#5bc8af"/>
+        <text x="95" y="90" fill="#7a839a" font-size="11">Elbow</text>
+
+        <circle cx="108" cy="23" r="6" fill="#e8c547"/>
+        <text x="115" y="22" fill="#e8c547" font-size="12">★ EE</text>
+
+        <!-- L1 label -->
+        <text x="52" y="108" fill="#5bc8af" font-size="11" transform="rotate(-45,52,108)">L₁=1m</text>
+        <!-- L2 label -->
+        <text x="88" y="60" fill="#e8c547" font-size="11" transform="rotate(-75,88,60)">L₂=1m</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">The Formulas</div>
+    <div class="formula-box">
+      <div class="formula-line">
+        <span class="var">x</span> = <span class="var">L₁</span> · <span class="fn">cos</span>(<span class="var">θ₁</span>) + <span class="var">L₂</span> · <span class="fn">cos</span>(<span class="var">θ₁ + θ₂</span>)
+      </div>
+      <div class="formula-line">
+        <span class="var">y</span> = <span class="var">L₁</span> · <span class="fn">sin</span>(<span class="var">θ₁</span>) + <span class="var">L₂</span> · <span class="fn">sin</span>(<span class="var">θ₁ + θ₂</span>)
+      </div>
+    </div>
+    <div class="insight">
+      <strong>Key insight:</strong> Link 2's angle in the world is <strong>θ₁ + θ₂</strong> — rotations stack. Each link adds a vector; the EE position is the vector sum.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Step-by-Step Calculation</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-label">Combined angle of link 2</div>
+          <div class="calc">
+            <div class="line"><span class="lhs">θ₁ + θ₂</span><span class="rhs">= 45° + 30° = <span class="hi">75°</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-label">Solve for x</div>
+          <div class="calc">
+            <div class="line"><span class="lhs">x</span><span class="rhs">= 1 · <span class="hi">cos(45°)</span> + 1 · <span class="hi2">cos(75°)</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs">= <span class="hi">0.707</span> + <span class="hi2">0.259</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs hi2 final">≈ 0.966 m</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-label">Solve for y</div>
+          <div class="calc">
+            <div class="line"><span class="lhs">y</span><span class="rhs">= 1 · <span class="hi">sin(45°)</span> + 1 · <span class="hi2">sin(75°)</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs">= <span class="hi">0.707</span> + <span class="hi2">0.966</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs hi2 final">≈ 1.673 m</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="result-icon">✓</div>
+      <div class="result-text">End effector position: <strong>( 0.966, 1.673 )</strong> in the base frame</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Classroom Exercises — Try These</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th><th>θ₁</th><th>θ₂</th><th>Expected insight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arm fully stretched</td>
+          <td>0°</td><td>0°</td>
+          <td class="insight-cell">x = 2, y = 0 — maximum reach</td>
+        </tr>
+        <tr>
+          <td>Elbow folded back</td>
+          <td>45°</td><td>−45°</td>
+          <td class="insight-cell">Link 2 partially cancels link 1</td>
+        </tr>
+        <tr>
+          <td>Elbow pointing up</td>
+          <td>0°</td><td>90°</td>
+          <td class="insight-cell">EE is directly above the elbow</td>
+        </tr>
+        <tr>
+          <td style="color:var(--accent3)">Your own choice</td>
+          <td style="color:var(--text-dim)">?</td><td style="color:var(--text-dim)">?</td>
+          <td class="insight-cell">Guess first, then verify ← best exercise</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       EXAMPLE 2
+  ══════════════════════════════════════════════ -->
+  <hr class="divider">
+
+  <div class="section-label">
+    <div class="section-num">02</div>
+    <div class="section-title">
+      <span>Example 2</span>
+      Base Frame → End Effector Frame Transform
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Setup</div>
+    <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px;">
+      Same arm, same configuration. A sensor on the end effector detects a <strong style="color:var(--text-bright)">bolt</strong> at position <strong style="color:var(--accent)">(0.2, 0)</strong> in the EE frame — 20 cm straight ahead of the tip. Where is the bolt in the <strong style="color:var(--accent2)">base frame</strong>?
+    </p>
+    <div class="two-col">
+      <div>
+        <div class="step-label">Known (from Example 1)</div>
+        <div style="color:var(--text-bright); line-height:2.2; font-size:13px;">
+          EE position: <span style="color:var(--accent2)">(0.966, 1.673)</span><br>
+          EE tip angle: <span style="color:var(--accent)">75°</span>
+        </div>
+      </div>
+      <div>
+        <div class="step-label">Bolt in EE frame</div>
+        <div style="color:var(--text-bright); line-height:2.2; font-size:13px;">
+          p<sub>EE</sub> = <span style="color:var(--accent3)">(0.2, 0)</span><br>
+          <span style="color:var(--text-dim); font-size:12px; font-style:italic;">20 cm straight ahead of tip</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">The Homogeneous Transform Matrix</div>
+    <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px;">
+      A 3×3 matrix (2D case) encodes rotation + translation in one operation:
+    </p>
+
+    <div class="matrix-wrap">
+      <div style="color:var(--text-dim); font-size:13px;">T =</div>
+      <div class="matrix">
+        <div class="matrix-row"><span class="val a">cos75°</span><span class="val a">−sin75°</span><span class="val c">0.966</span></div>
+        <div class="matrix-row"><span class="val a">sin75°</span><span class="val a"> cos75°</span><span class="val c">1.673</span></div>
+        <div class="matrix-row"><span class="val">0</span><span class="val">0</span><span class="val">1</span></div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;">
+      <div class="insight" style="margin:0;">
+        <strong style="color:var(--accent2)">Top-left 2×2</strong><br>
+        Rotation matrix — encodes which way the tip is pointing (75°)
+      </div>
+      <div class="insight" style="margin:0;">
+        <strong style="color:var(--accent)">Right column</strong><br>
+        Translation — where the EE origin sits in the base frame
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Step-by-Step Calculation</div>
+
+    <div class="step-label" style="margin-bottom:10px;">Bolt in homogeneous coordinates → (0.2, 0, 1)</div>
+
+    <div class="matrix-wrap" style="flex-wrap:wrap; gap:8px;">
+      <div class="matrix" style="font-size:12px;">
+        <div class="matrix-row"><span class="val a">0.259</span><span class="val a">−0.966</span><span class="val c">0.966</span></div>
+        <div class="matrix-row"><span class="val a">0.966</span><span class="val a"> 0.259</span><span class="val c">1.673</span></div>
+        <div class="matrix-row"><span class="val">0</span><span class="val">0</span><span class="val">1</span></div>
+      </div>
+      <div class="times">×</div>
+      <div class="matrix" style="font-size:12px;">
+        <div class="matrix-row"><span class="val b">0.2</span></div>
+        <div class="matrix-row"><span class="val b">0</span></div>
+        <div class="matrix-row"><span class="val">1</span></div>
+      </div>
+      <div class="equals">=</div>
+      <div class="matrix" style="font-size:12px;">
+        <div class="matrix-row"><span class="val" style="color:var(--accent2);">?</span></div>
+        <div class="matrix-row"><span class="val" style="color:var(--accent2);">?</span></div>
+        <div class="matrix-row"><span class="val">1</span></div>
+      </div>
+    </div>
+
+    <div class="steps" style="margin-top:20px;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-label">Solve for x</div>
+          <div class="calc">
+            <div class="line"><span class="lhs">x</span><span class="rhs">= (<span class="hi">0.259</span> × <span class="hi3">0.2</span>) + (−<span class="hi">0.966</span> × <span class="hi3">0</span>) + <span class="hi2">0.966</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs">= 0.052 + 0 + 0.966</span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs hi2 final">≈ 1.018 m</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-label">Solve for y</div>
+          <div class="calc">
+            <div class="line"><span class="lhs">y</span><span class="rhs">= (<span class="hi">0.966</span> × <span class="hi3">0.2</span>) + (<span class="hi">0.259</span> × <span class="hi3">0</span>) + <span class="hi2">1.673</span></span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs">= 0.193 + 0 + 1.673</span></div>
+            <div class="line"><span class="lhs"></span><span class="rhs hi2 final">≈ 1.866 m</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="result-icon">✓</div>
+      <div class="result-text">Bolt position in base frame: <strong>( 1.018, 1.866 )</strong></div>
+    </div>
+
+    <div class="insight">
+      <strong>Sanity check:</strong> The bolt is 20 cm ahead of the tip, which is pointing at 75° (nearly vertical). So the shift is mostly in <strong>Y (+0.193)</strong> and a little in <strong>X (+0.052)</strong>. That's exactly what we got. ✓
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Why This Matters in Practice</div>
+    <p style="color:var(--text-dim); font-size:13px; line-height:1.9;">
+      This operation — <strong style="color:var(--text-bright)">sensor frame → base frame</strong> — is one of the most frequent computations in real robotics. Every time a wrist camera spots an object, the robot must transform that observation into world coordinates before planning any motion. The homogeneous transform matrix makes this systematic and scalable to any number of frames chained together.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       BRIDGE
+  ══════════════════════════════════════════════ -->
+  <div class="bridge">
+    <h3>Where These Examples Lead</h3>
+    <ul>
+      <li><strong>Add a third link</strong> — the FK formula just gains another cosine/sine term. Same logic, more DoF.</li>
+      <li><strong>Flip the question</strong> — "Given I want the tip at (1.2, 1.0), what angles do I use?" That's <strong>inverse kinematics</strong>, and suddenly it's hard.</li>
+      <li><strong>Go to 3D</strong> — the 3×3 homogeneous matrix becomes 4×4. The rotation block becomes a 3×3 rotation matrix. Same structure, more dimensions.</li>
+      <li><strong>Chain more frames</strong> — T_base→bolt = T_base→EE · T_EE→bolt. This is the foundation of the full kinematic chain.</li>
+    </ul>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>
