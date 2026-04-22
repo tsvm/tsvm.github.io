@@ -1,0 +1,233 @@
+
+<h2 class="sr-only">Degrees of freedom explorer: compare 1-DOF, 2-DOF and 3-DOF planar robot arms</h2>
+
+<style>
+  .dof-wrap { padding: 1rem 0; font-family: var(--font-sans); }
+  .dof-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .dof-tab {
+    padding: 8px 20px; border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: transparent; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--color-text-secondary);
+    transition: all 0.15s;
+  }
+  .dof-tab.active {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-primary);
+  }
+  .dof-main { display: grid; grid-template-columns: 1fr 220px; gap: 1.5rem; align-items: start; }
+  @media (max-width: 560px) { .dof-main { grid-template-columns: 1fr; } }
+  canvas { width: 100%; height: auto; display: block; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .stat-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .stat-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .stat-val { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .stat-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .slider-row { margin-bottom: 14px; }
+  .slider-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .slider-head .sname { color: var(--color-text-secondary); }
+  .slider-head .sval { color: var(--color-text-primary); font-weight: 500; }
+  .insight { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; padding: 12px 14px; border-left: 2px solid var(--color-border-secondary); border-radius: 0; margin-top: 4px; }
+  .insight strong { color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<div class="dof-wrap">
+  <div class="dof-tabs">
+    <button class="dof-tab active" onclick="setDOF(1)">1 DOF</button>
+    <button class="dof-tab" onclick="setDOF(2)">2 DOF</button>
+    <button class="dof-tab" onclick="setDOF(3)">3 DOF — redundant</button>
+  </div>
+
+  <div class="dof-main">
+    <canvas id="dofCanvas" width="520" height="420"></canvas>
+    <div class="sidebar">
+      <div class="stat-card">
+        <div class="stat-label">Degrees of freedom</div>
+        <div class="stat-val" id="dof-num">1</div>
+        <div class="stat-sub" id="dof-sub">1 joint · 1 angle</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Reachable space</div>
+        <div class="stat-val" id="reach-val">Arc</div>
+        <div class="stat-sub" id="reach-sub">fixed radius, 1D path</div>
+      </div>
+      <div id="sliders"></div>
+      <div class="insight" id="insight">
+        <strong>1 DOF:</strong> the arm can only sweep an arc. Pick any point not on that arc — unreachable. This is a conveyor belt arm.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('dofCanvas');
+const ctx = canvas.getContext('2d');
+
+let dof = 1;
+let angles = [40, 60, -50];
+const LINKS = [2.8, 2.2, 1.6];
+const TOTAL = LINKS[0] + LINKS[1] + LINKS[2];
+const COLORS = ['#378ADD', '#D85A30', '#639922'];
+const LIGHT = ['rgba(55,138,221,0.18)', 'rgba(216,90,48,0.18)', 'rgba(99,153,34,0.18)'];
+
+const insights = [
+  '<strong>1 DOF:</strong> the arm can only sweep an arc. Pick any point not on that arc — unreachable. This is a conveyor belt arm.',
+  '<strong>2 DOF:</strong> the arm can reach any point in a ring-shaped area — the annulus between max and min reach. But each point has at most 2 solutions (elbow up / elbow down).',
+  '<strong>3 DOF (redundant):</strong> now the arm can reach most points with <em>infinitely many</em> joint configurations. This lets it avoid obstacles, stay comfortable, or match an orientation — just like your arm.'
+];
+
+const reachVals = ['Arc', 'Area', 'Area +\u00a0orientation'];
+const reachSubs = ['fixed radius · 1D path', 'annulus ring · 2 solutions per point', 'full plane · infinite solutions per point'];
+const dofSubs = ['1 joint · 1 angle', '2 joints · 2 angles', '3 joints · 3 angles'];
+
+function toC(x, y) {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W, H) / (2 * TOTAL + 1.5);
+  return { x: W / 2 + x * sc, y: H / 2 + 30 - y * sc };
+}
+
+function fromC(cx, cy) {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W, H) / (2 * TOTAL + 1.5);
+  return { x: (cx - W / 2) / sc, y: (H / 2 + 30 - cy) / sc };
+}
+
+function scale() {
+  return Math.min(canvas.width, canvas.height) / (2 * TOTAL + 1.5);
+}
+
+function drawReachability() {
+  const o = toC(0, 0);
+  const sc = scale();
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+
+  if (dof === 1) {
+    const r = LINKS[0] * sc;
+    ctx.strokeStyle = COLORS[0];
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, Math.PI * 2); ctx.stroke();
+  } else if (dof === 2) {
+    const rmax = (LINKS[0] + LINKS[1]) * sc;
+    const rmin = Math.abs(LINKS[0] - LINKS[1]) * sc;
+    ctx.fillStyle = COLORS[1];
+    ctx.beginPath(); ctx.arc(o.x, o.y, rmax, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = getComputedStyle(canvas).getPropertyValue('--color-background-secondary') || '#f5f5f5';
+    ctx.beginPath(); ctx.arc(o.x, o.y, rmin, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const rmax = (LINKS[0] + LINKS[1] + LINKS[2]) * sc;
+    ctx.fillStyle = COLORS[2];
+    ctx.beginPath(); ctx.arc(o.x, o.y, rmax, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawGrid() {
+  const W = canvas.width, H = canvas.height;
+  const o = toC(0, 0);
+  const sc = scale();
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(128,128,128,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = -7; i <= 7; i++) {
+    const px = o.x + i * sc, py = o.y - i * sc;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(128,128,128,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(W, o.y); ctx.stroke();
+}
+
+function drawArm() {
+  drawGrid();
+  drawReachability();
+
+  const sc = scale();
+  let cumAngle = 0;
+  let pts = [toC(0, 0)];
+  let wx = 0, wy = 0;
+
+  for (let i = 0; i < dof; i++) {
+    cumAngle += angles[i] * Math.PI / 180;
+    wx += LINKS[i] * Math.cos(cumAngle);
+    wy += LINKS[i] * Math.sin(cumAngle);
+    pts.push(toC(wx, wy));
+  }
+
+  for (let i = 0; i < dof; i++) {
+    ctx.save();
+    ctx.strokeStyle = COLORS[i];
+    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.shadowColor = COLORS[i]; ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[i+1].x, pts[i+1].y); ctx.stroke();
+    ctx.restore();
+  }
+
+  pts.forEach((pt, i) => {
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, i === 0 ? 7 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? 'var(--color-text-secondary)' : COLORS[Math.min(i-1, dof-1)];
+    ctx.fill();
+    if (i === 0) { ctx.strokeStyle = 'var(--color-border-primary)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+  });
+
+  const ee = pts[dof];
+  ctx.beginPath(); ctx.arc(ee.x, ee.y, 7, 0, Math.PI * 2);
+  ctx.strokeStyle = COLORS[dof - 1]; ctx.lineWidth = 2;
+  ctx.fillStyle = 'var(--color-background-primary)'; ctx.fill(); ctx.stroke();
+
+  ctx.font = '11px var(--font-mono, monospace)';
+  ctx.fillStyle = 'var(--color-text-secondary)';
+  ctx.textAlign = 'center';
+  const { x: ex, y: ey } = fromC(ee.x, ee.y);
+  ctx.fillText(`(${ex.toFixed(1)}, ${ey.toFixed(1)})`, ee.x, ee.y - 12);
+}
+
+function buildSliders() {
+  const el = document.getElementById('sliders');
+  el.innerHTML = '';
+  for (let i = 0; i < dof; i++) {
+    const color = COLORS[i];
+    const div = document.createElement('div');
+    div.className = 'slider-row';
+    div.innerHTML = `
+      <div class="slider-head">
+        <span class="sname" style="color:${color}">θ${['₁','₂','₃'][i]} — joint ${i+1}</span>
+        <span class="sval" id="av${i}">${angles[i]}°</span>
+      </div>
+      <input type="range" min="-170" max="170" step="1" value="${angles[i]}" data-idx="${i}">
+    `;
+    el.appendChild(div);
+  }
+  el.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.idx);
+      angles[idx] = parseInt(inp.value);
+      document.getElementById('av' + idx).textContent = angles[idx] + '°';
+      drawArm();
+    });
+  });
+}
+
+function updateSidebar() {
+  document.getElementById('dof-num').textContent = dof;
+  document.getElementById('dof-sub').textContent = dofSubs[dof - 1];
+  document.getElementById('reach-val').textContent = reachVals[dof - 1];
+  document.getElementById('reach-sub').textContent = reachSubs[dof - 1];
+  document.getElementById('insight').innerHTML = insights[dof - 1];
+}
+
+function setDOF(n) {
+  dof = n;
+  document.querySelectorAll('.dof-tab').forEach((t, i) => t.classList.toggle('active', i === n - 1));
+  buildSliders();
+  updateSidebar();
+  drawArm();
+}
+
+setDOF(1);
+</script>
