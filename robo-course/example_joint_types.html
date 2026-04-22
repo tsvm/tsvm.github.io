@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Joint Types</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --surface: #ede8df;
+    --surface2: #e2dcd2;
+    --ink: #1a1714;
+    --ink2: #5a5550;
+    --ink3: #8a8580;
+    --accent-r: #c94030;
+    --accent-b: #2b5fa8;
+    --accent-g: #2d7a4f;
+    --accent-y: #c47a1a;
+    --accent-p: #7040a0;
+    --border: rgba(26,23,20,0.12);
+    --border2: rgba(26,23,20,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+  }
+
+  header {
+    max-width: 900px;
+    margin: 0 auto 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  header .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  header h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  header h1 em {
+    font-style: italic;
+    color: var(--ink2);
+  }
+
+  header p {
+    font-size: 1rem;
+    color: var(--ink2);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+
+  .joints-grid {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2px;
+  }
+
+  .joint-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px 24px 24px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .joint-card:first-child { border-radius: 12px 0 0 0; }
+  .joint-card:nth-child(3) { border-radius: 0 12px 0 0; }
+  .joint-card:nth-child(4) { border-radius: 0 0 0 12px; }
+  .joint-card:last-child { border-radius: 0 0 12px 0; }
+
+  @media (max-width: 600px) {
+    .joint-card { border-radius: 0 !important; }
+    .joint-card:first-child { border-radius: 12px 12px 0 0 !important; }
+    .joint-card:last-child { border-radius: 0 0 12px 12px !important; }
+  }
+
+  .joint-card.active { background: var(--surface2); }
+  .joint-card:hover { background: var(--surface2); }
+
+  .card-accent {
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 10px;
+    padding-left: 12px;
+  }
+
+  .card-name {
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    padding-left: 12px;
+  }
+
+  .card-dof {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink3);
+    padding-left: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card-svg-wrap {
+    width: 100%;
+    aspect-ratio: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.35);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .card-svg-wrap svg {
+    width: 90%;
+    height: 90%;
+  }
+
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--ink2);
+    line-height: 1.6;
+    font-weight: 300;
+    padding-left: 12px;
+  }
+
+  .card-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-left: 12px;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--ink3);
+    background: rgba(255,255,255,0.4);
+  }
+
+  /* Animations */
+
+  /* REVOLUTE — spinning disk */
+  .rev-link {
+    transform-origin: 200px 160px;
+    animation: revolve 3s ease-in-out infinite alternate;
+  }
+  @keyframes revolve {
+    0% { transform: rotate(-40deg); }
+    100% { transform: rotate(40deg); }
+  }
+
+  .rev-arc {
+    animation: arc-appear 3s ease-in-out infinite alternate;
+  }
+  @keyframes arc-appear {
+    0% { stroke-dashoffset: 60; opacity: 0.3; }
+    100% { stroke-dashoffset: 0; opacity: 1; }
+  }
+
+  /* PRISMATIC — sliding block */
+  .pris-block {
+    animation: slide 2.8s ease-in-out infinite alternate;
+  }
+  @keyframes slide {
+    0% { transform: translateY(0px); }
+    100% { transform: translateY(-60px); }
+  }
+  .pris-arrow {
+    animation: arrow-pulse 2.8s ease-in-out infinite alternate;
+  }
+  @keyframes arrow-pulse {
+    0% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+
+  /* BALL & SOCKET — rotating sphere indicator */
+  .bs-arm {
+    transform-origin: 200px 155px;
+    animation: ballsock 4s ease-in-out infinite;
+  }
+  @keyframes ballsock {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(35deg); }
+    50% { transform: rotate(-20deg) skewY(10deg); }
+    75% { transform: rotate(25deg) skewY(-5deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  /* HELICAL — screw motion */
+  .hel-nut {
+    animation: screw 3s ease-in-out infinite alternate;
+  }
+  @keyframes screw {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(-55px) rotate(180deg); }
+  }
+
+  /* PLANAR — sliding in 2D */
+  .plan-block {
+    animation: planar 4s ease-in-out infinite;
+  }
+  @keyframes planar {
+    0%   { transform: translate(0px, 0px); }
+    25%  { transform: translate(40px, 0px); }
+    50%  { transform: translate(40px, -35px); }
+    75%  { transform: translate(-20px, -35px); }
+    100% { transform: translate(0px, 0px); }
+  }
+
+  /* CYLINDRICAL — rotate + slide */
+  .cyl-rod {
+    animation: cylslide 3.5s ease-in-out infinite alternate;
+  }
+  @keyframes cylslide {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-45px); }
+  }
+  .cyl-top {
+    transform-origin: 200px 80px;
+    animation: cylrot 3.5s ease-in-out infinite alternate;
+  }
+  @keyframes cylrot {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(90deg); }
+  }
+
+  .detail-panel {
+    max-width: 900px;
+    margin: 2px auto 0;
+    background: var(--ink);
+    color: #f0ebe0;
+    border-radius: 0 0 12px 12px;
+    padding: 32px 36px;
+    display: none;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  .detail-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  @media (max-width: 600px) {
+    .detail-inner { grid-template-columns: 1fr; }
+    .detail-panel { padding: 24px 20px; }
+  }
+
+  .detail-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(240,235,224,0.4);
+    margin-bottom: 8px;
+  }
+
+  .detail-heading {
+    font-size: 1.8rem;
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .detail-body {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: rgba(240,235,224,0.75);
+    font-weight: 300;
+  }
+
+  .detail-body strong {
+    color: #f0ebe0;
+    font-weight: 400;
+  }
+
+  .detail-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(240,235,224,0.08);
+  }
+
+  .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .stat-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(240,235,224,0.4);
+  }
+
+  .stat-val {
+    font-size: 1.05rem;
+    font-weight: 300;
+    color: #f0ebe0;
+  }
+
+  .so101-note {
+    max-width: 900px;
+    margin: 24px auto 0;
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(43,95,168,0.06);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .so101-note .note-icon {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-b);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    margin-top: 2px;
+    border: 1px solid var(--accent-b);
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .so101-note p {
+    font-size: 0.88rem;
+    color: var(--ink2);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .so101-note p strong {
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Robotic Manipulation · Lecture 1</div>
+  <h1>Robot Joint <em>Types</em></h1>
+  <p>Each joint type constrains motion differently — and therefore contributes a different number of degrees of freedom. Click any joint to explore.</p>
+</header>
+
+<div class="joints-grid" id="grid">
+
+  <!-- REVOLUTE -->
+  <div class="joint-card active" data-id="revolute" onclick="select('revolute')">
+    <div class="card-accent" style="background:var(--accent-r)"></div>
+    <div class="card-tag">Type 01</div>
+    <div class="card-name">Revolute</div>
+    <div class="card-dof">1 DOF — rotation only</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fixed base -->
+        <rect x="170" y="200" width="60" height="16" rx="3" fill="#1a1714" opacity="0.15"/>
+        <rect x="185" y="188" width="30" height="16" rx="2" fill="#1a1714" opacity="0.2"/>
+        <!-- Joint center marker -->
+        <circle cx="200" cy="160" r="18" fill="white" stroke="#1a1714" stroke-width="1.5" opacity="0.6"/>
+        <circle cx="200" cy="160" r="6" fill="var(--accent-r)" opacity="0.9"/>
+        <!-- Arm -->
+        <g class="rev-link">
+          <rect x="197" y="60" width="6" height="105" rx="3" fill="var(--accent-r)" opacity="0.85"/>
+          <rect x="188" y="50" width="24" height="20" rx="4" fill="var(--accent-r)" opacity="0.7"/>
+          <circle cx="200" cy="55" r="8" fill="white" stroke="var(--accent-r)" stroke-width="1.5"/>
+        </g>
+        <!-- Axis line -->
+        <line x1="200" y1="145" x2="200" y2="210" stroke="#1a1714" stroke-width="1" stroke-dasharray="4 3" opacity="0.3"/>
+        <!-- Arc indicator -->
+        <path class="rev-arc" d="M 165 120 A 42 42 0 0 1 235 120" stroke="var(--accent-r)" stroke-width="1.5" stroke-dasharray="60" stroke-dashoffset="0" fill="none" opacity="0.5"/>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">rotation axis ↑</text>
+      </svg>
+    </div>
+    <div class="card-desc">Rotates around a single fixed axis. The most common joint in robot arms.</div>
+    <div class="card-examples">
+      <span class="tag">elbow</span>
+      <span class="tag">shoulder pan</span>
+      <span class="tag">wrist flex</span>
+      <span class="tag">SO-101 ×6</span>
+    </div>
+  </div>
+
+  <!-- PRISMATIC -->
+  <div class="joint-card" data-id="prismatic" onclick="select('prismatic')">
+    <div class="card-accent" style="background:var(--accent-b)"></div>
+    <div class="card-tag">Type 02</div>
+    <div class="card-name">Prismatic</div>
+    <div class="card-dof">1 DOF — translation only</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Rail -->
+        <rect x="188" y="30" width="24" height="185" rx="4" fill="#1a1714" opacity="0.1"/>
+        <rect x="194" y="30" width="12" height="185" rx="2" fill="#1a1714" opacity="0.12"/>
+        <!-- Fixed base -->
+        <rect x="164" y="200" width="72" height="18" rx="4" fill="#1a1714" opacity="0.15"/>
+        <!-- Sliding block -->
+        <g class="pris-block">
+          <rect x="174" y="148" width="52" height="38" rx="5" fill="var(--accent-b)" opacity="0.85"/>
+          <rect x="182" y="155" width="36" height="24" rx="3" fill="white" opacity="0.2"/>
+          <line x1="200" y1="162" x2="200" y2="170" stroke="white" stroke-width="2" opacity="0.5"/>
+          <line x1="196" y1="166" x2="204" y2="166" stroke="white" stroke-width="2" opacity="0.5"/>
+        </g>
+        <!-- Arrow -->
+        <g class="pris-arrow">
+          <line x1="232" y1="80" x2="232" y2="195" stroke="var(--accent-b)" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.5"/>
+          <polygon points="232,70 228,82 236,82" fill="var(--accent-b)" opacity="0.6"/>
+          <polygon points="232,205 228,193 236,193" fill="var(--accent-b)" opacity="0.6"/>
+        </g>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">linear axis ↕</text>
+      </svg>
+    </div>
+    <div class="card-desc">Slides linearly along a single axis. No rotation — pure translation.</div>
+    <div class="card-examples">
+      <span class="tag">linear actuator</span>
+      <span class="tag">CNC Z-axis</span>
+      <span class="tag">telescoping arm</span>
+    </div>
+  </div>
+
+  <!-- BALL & SOCKET -->
+  <div class="joint-card" data-id="ball" onclick="select('ball')">
+    <div class="card-accent" style="background:var(--accent-g)"></div>
+    <div class="card-tag">Type 03</div>
+    <div class="card-name">Ball & Socket</div>
+    <div class="card-dof">3 DOF — full rotation</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Socket -->
+        <path d="M 155 175 Q 155 145 200 140 Q 245 145 245 175 Z" fill="#1a1714" opacity="0.12"/>
+        <ellipse cx="200" cy="168" rx="46" ry="18" fill="#1a1714" opacity="0.1"/>
+        <!-- Ball -->
+        <circle cx="200" cy="155" r="32" fill="var(--accent-g)" opacity="0.2" stroke="var(--accent-g)" stroke-width="1.5"/>
+        <circle cx="200" cy="155" r="20" fill="var(--accent-g)" opacity="0.5"/>
+        <circle cx="193" cy="148" r="6" fill="white" opacity="0.4"/>
+        <!-- Arm -->
+        <g class="bs-arm">
+          <rect x="196" y="50" width="8" height="108" rx="4" fill="var(--accent-g)" opacity="0.8"/>
+          <rect x="186" y="40" width="28" height="18" rx="4" fill="var(--accent-g)" opacity="0.6"/>
+        </g>
+        <!-- DOF arcs -->
+        <path d="M 165 130 A 38 38 0 0 1 235 130" stroke="var(--accent-g)" stroke-width="1" stroke-dasharray="5 3" fill="none" opacity="0.3"/>
+        <ellipse cx="200" cy="155" rx="38" ry="12" stroke="var(--accent-g)" stroke-width="1" stroke-dasharray="5 3" fill="none" opacity="0.3"/>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">pitch · yaw · roll</text>
+      </svg>
+    </div>
+    <div class="card-desc">Allows rotation around all three axes simultaneously. Maximum rotational freedom.</div>
+    <div class="card-examples">
+      <span class="tag">human shoulder</span>
+      <span class="tag">hip joint</span>
+      <span class="tag">camera mount</span>
+    </div>
+  </div>
+
+  <!-- HELICAL -->
+  <div class="joint-card" data-id="helical" onclick="select('helical')">
+    <div class="card-accent" style="background:var(--accent-y)"></div>
+    <div class="card-tag">Type 04</div>
+    <div class="card-name">Helical (Screw)</div>
+    <div class="card-dof">1 DOF — coupled rotation + translation</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Screw body -->
+        <rect x="192" y="55" width="16" height="155" rx="4" fill="#1a1714" opacity="0.1"/>
+        <!-- Helix lines -->
+        <path d="M 192 70 Q 208 77 208 84 Q 208 91 192 98 Q 176 105 192 112 Q 208 119 208 126 Q 208 133 192 140 Q 176 147 192 154 Q 208 161 208 168 Q 208 175 192 182" stroke="var(--accent-y)" stroke-width="2" fill="none" opacity="0.6"/>
+        <!-- Nut (moving element) -->
+        <g class="hel-nut">
+          <rect x="176" y="155" width="48" height="26" rx="5" fill="var(--accent-y)" opacity="0.85"/>
+          <rect x="184" y="161" width="32" height="14" rx="3" fill="white" opacity="0.2"/>
+          <!-- rotation marks -->
+          <line x1="200" y1="163" x2="200" y2="175" stroke="white" stroke-width="1.5" opacity="0.4"/>
+          <line x1="194" y1="169" x2="206" y2="169" stroke="white" stroke-width="1.5" opacity="0.4"/>
+        </g>
+        <!-- Arrow combo -->
+        <path d="M 238 80 Q 248 110 238 145" stroke="var(--accent-y)" stroke-width="1.5" stroke-dasharray="4 3" fill="none" opacity="0.4" marker-end="url(#arr)"/>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">rotate → translate</text>
+      </svg>
+    </div>
+    <div class="card-desc">Rotation and translation are coupled — like a bolt through a nut. Turning produces advancing.</div>
+    <div class="card-examples">
+      <span class="tag">lead screw</span>
+      <span class="tag">bolt & nut</span>
+      <span class="tag">drill press</span>
+    </div>
+  </div>
+
+  <!-- PLANAR -->
+  <div class="joint-card" data-id="planar" onclick="select('planar')">
+    <div class="card-accent" style="background:var(--accent-p)"></div>
+    <div class="card-tag">Type 05</div>
+    <div class="card-name">Planar</div>
+    <div class="card-dof">3 DOF — translation in plane + rotation</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Plane surface -->
+        <rect x="120" y="155" width="160" height="50" rx="5" fill="#1a1714" opacity="0.08"/>
+        <line x1="120" y1="155" x2="280" y2="155" stroke="#1a1714" stroke-width="1" opacity="0.15"/>
+        <!-- Grid on plane -->
+        <line x1="147" y1="155" x2="147" y2="205" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="174" y1="155" x2="174" y2="205" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="200" y1="155" x2="200" y2="205" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="226" y1="155" x2="226" y2="205" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="253" y1="155" x2="253" y2="205" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="120" y1="172" x2="280" y2="172" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <line x1="120" y1="188" x2="280" y2="188" stroke="#1a1714" stroke-width="0.5" opacity="0.08"/>
+        <!-- Moving block -->
+        <g class="plan-block">
+          <rect x="172" y="130" width="56" height="30" rx="6" fill="var(--accent-p)" opacity="0.8"/>
+          <circle cx="185" cy="145" r="5" fill="white" opacity="0.3"/>
+          <circle cx="215" cy="145" r="5" fill="white" opacity="0.3"/>
+          <!-- rotation indicator -->
+          <path d="M 196 138 A 6 6 0 1 1 204 138" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+          <polygon points="204,133 207,140 200,139" fill="white" opacity="0.5"/>
+        </g>
+        <!-- Axes -->
+        <line x1="285" y1="155" x2="310" y2="155" stroke="var(--accent-p)" stroke-width="1.5" opacity="0.5" marker-end="url(#xarr)"/>
+        <line x1="285" y1="155" x2="285" y2="125" stroke="var(--accent-p)" stroke-width="1.5" opacity="0.5"/>
+        <polygon points="285,118 281,128 289,128" fill="var(--accent-p)" opacity="0.5"/>
+        <text x="316" y="159" font-family="DM Mono, monospace" font-size="9" fill="var(--accent-p)" opacity="0.7">X</text>
+        <text x="280" y="115" font-family="DM Mono, monospace" font-size="9" fill="var(--accent-p)" opacity="0.7">Y</text>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">x · y · θ in plane</text>
+      </svg>
+    </div>
+    <div class="card-desc">Moves freely within a plane — x, y translation plus rotation around the vertical axis.</div>
+    <div class="card-examples">
+      <span class="tag">SCARA robot</span>
+      <span class="tag">2D gantry</span>
+      <span class="tag">flatbed plotter</span>
+    </div>
+  </div>
+
+  <!-- CYLINDRICAL -->
+  <div class="joint-card" data-id="cylindrical" onclick="select('cylindrical')">
+    <div class="card-accent" style="background:var(--accent-r)" style="background:linear-gradient(var(--accent-r),var(--accent-b))"></div>
+    <div class="card-tag">Type 06</div>
+    <div class="card-name">Cylindrical</div>
+    <div class="card-dof">2 DOF — rotation + independent translation</div>
+    <div class="card-svg-wrap">
+      <svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Base platform -->
+        <ellipse cx="200" cy="200" rx="55" ry="14" fill="#1a1714" opacity="0.12"/>
+        <rect x="185" y="190" width="30" height="14" rx="3" fill="#1a1714" opacity="0.1"/>
+        <!-- Vertical rod -->
+        <rect x="196" y="75" width="8" height="120" rx="3" fill="#1a1714" opacity="0.15"/>
+        <!-- Rotating platform -->
+        <g class="cyl-top">
+          <ellipse cx="200" cy="80" rx="45" ry="12" fill="var(--accent-b)" opacity="0.2" stroke="var(--accent-b)" stroke-width="1.5"/>
+          <!-- Arm on top -->
+          <rect x="200" y="68" width="42" height="8" rx="3" fill="var(--accent-b)" opacity="0.7"/>
+          <circle cx="244" cy="72" r="6" fill="white" stroke="var(--accent-b)" stroke-width="1.5"/>
+        </g>
+        <!-- Sliding collar -->
+        <g class="cyl-rod">
+          <rect x="184" y="142" width="32" height="22" rx="5" fill="#c94030" opacity="0.8"/>
+          <rect x="192" y="148" width="16" height="10" rx="2" fill="white" opacity="0.2"/>
+        </g>
+        <!-- Rotation arc -->
+        <path d="M 158 80 A 44 12 0 0 1 242 80" stroke="var(--accent-b)" stroke-width="1" stroke-dasharray="5 3" fill="none" opacity="0.4"/>
+        <!-- Translation arrow -->
+        <line x1="238" y1="95" x2="238" y2="190" stroke="#c94030" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.4"/>
+        <polygon points="238,88 234,100 242,100" fill="#c94030" opacity="0.5"/>
+        <polygon points="238,197 234,185 242,185" fill="#c94030" opacity="0.5"/>
+        <text x="200" y="232" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#8a8580" letter-spacing="1">rotate + slide (independent)</text>
+      </svg>
+    </div>
+    <div class="card-desc">Combines rotation around and translation along the same axis, independently controlled.</div>
+    <div class="card-examples">
+      <span class="tag">cylindrical robot</span>
+      <span class="tag">turret lift</span>
+      <span class="tag">pick & place</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Detail panel -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-inner">
+    <div>
+      <div class="detail-label" id="d-label"></div>
+      <div class="detail-heading" id="d-heading"></div>
+      <div class="detail-body" id="d-body"></div>
+    </div>
+    <div class="detail-stats" id="d-stats"></div>
+  </div>
+</div>
+
+<!-- SO-101 note -->
+<div class="so101-note">
+  <div class="note-icon">SO-101</div>
+  <p><strong>All 6 joints in the SO-101 are revolute</strong> — each contributes exactly 1 DOF through rotation around a single axis. Chaining 5 revolute joints gives the arm its 5 positioning DOF, with the 6th motor actuating the gripper. This is typical of most modern robot arms: simple 1-DOF joints, stacked to produce complex workspace coverage.</p>
+</div>
+
+<script>
+  const details = {
+    revolute: {
+      label: 'Type 01 · Most common',
+      heading: 'Revolute joint',
+      body: `A revolute joint permits <strong>rotation about a single fixed axis</strong> — and nothing else. It contributes exactly 1 DOF. If you want the arm to reach any point in 3D space with full orientation control, you need at least 6 revolute joints chained together.<br><br>The axis of rotation is fixed in the joint's local frame. All other motion — translation, rotation about other axes — is constrained to zero. This makes revolute joints mathematically clean and mechanically simple.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '1' },
+        { name: 'Motion type', val: 'Pure rotation' },
+        { name: 'Constrained DOF', val: '5 of 6' },
+        { name: 'Common actuator', val: 'Servo motor, DC motor' },
+        { name: 'In SO-101', val: 'All 6 joints' },
+      ]
+    },
+    prismatic: {
+      label: 'Type 02 · Linear motion',
+      heading: 'Prismatic joint',
+      body: `A prismatic joint permits <strong>translation along a single axis</strong>. The two connected links slide relative to each other — no rotation is possible. Like revolute joints, prismatic joints contribute 1 DOF.<br><br>They are common in Cartesian and gantry robots (e.g. 3D printers, CNC machines) and in any mechanism where linear reach matters more than orientation. Often combined with revolute joints in SCARA or cylindrical configurations.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '1' },
+        { name: 'Motion type', val: 'Pure translation' },
+        { name: 'Constrained DOF', val: '5 of 6' },
+        { name: 'Common actuator', val: 'Lead screw, linear motor, pneumatic' },
+        { name: 'In SO-101', val: 'Not used' },
+      ]
+    },
+    ball: {
+      label: 'Type 03 · Maximum rotation',
+      heading: 'Ball & socket joint',
+      body: `A ball-and-socket joint permits <strong>rotation about all three axes</strong>: pitch, yaw, and roll. It contributes 3 DOF, making it the most rotationally free joint type. The human shoulder and hip are ball-and-socket joints.<br><br>Despite being biologically common, ball-and-socket joints are rare in robot arms — they are hard to actuate precisely and hard to control. Most robot arms achieve the same 3-DOF orientation by chaining three revolute joints with orthogonal axes instead.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '3' },
+        { name: 'Motion type', val: 'Pitch + yaw + roll' },
+        { name: 'Constrained DOF', val: '3 of 6' },
+        { name: 'Common actuator', val: 'Difficult — often serial revolutes instead' },
+        { name: 'Biological analogue', val: 'Shoulder, hip' },
+      ]
+    },
+    helical: {
+      label: 'Type 04 · Coupled motion',
+      heading: 'Helical (screw) joint',
+      body: `A helical joint couples <strong>rotation and translation along the same axis</strong> — but not independently. One full turn always produces the same linear advance (the pitch). It contributes 1 DOF, because the two motions are rigidly coupled by geometry.<br><br>Think of a bolt through a nut: turning the bolt inevitably advances it axially. This coupling is useful for converting motor rotation into precise linear motion, as in lead screws and ball screws.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '1' },
+        { name: 'Motion type', val: 'Rotation + translation (coupled)' },
+        { name: 'Constrained DOF', val: '5 of 6' },
+        { name: 'Key parameter', val: 'Pitch (advance per revolution)' },
+        { name: 'Common use', val: 'Lead screws, valve stems' },
+      ]
+    },
+    planar: {
+      label: 'Type 05 · Flat surface motion',
+      heading: 'Planar joint',
+      body: `A planar joint permits motion within a single plane: <strong>translation in X, translation in Y, and rotation about the normal axis</strong>. It contributes 3 DOF, all confined to 2D.<br><br>SCARA robots approximate planar behaviour for pick-and-place tasks — they move freely in the horizontal plane and only need constrained vertical motion. Planar joints are also useful when analysing multi-body systems constrained to a surface.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '3' },
+        { name: 'Motion type', val: 'X-translation · Y-translation · Z-rotation' },
+        { name: 'Constrained DOF', val: '3 of 6' },
+        { name: 'Common robot type', val: 'SCARA, 2D gantry' },
+        { name: 'In SO-101', val: 'Not used' },
+      ]
+    },
+    cylindrical: {
+      label: 'Type 06 · 2-DOF combined',
+      heading: 'Cylindrical joint',
+      body: `A cylindrical joint combines <strong>rotation about an axis</strong> and <strong>independent translation along the same axis</strong> — two separate motions, not coupled like a helical joint. It contributes 2 DOF.<br><br>Unlike a helical joint, you can rotate without translating, or translate without rotating. This gives cylindrical robots their characteristic "turret + lift" motion: spin to aim, extend to reach.`,
+      stats: [
+        { name: 'Degrees of freedom', val: '2' },
+        { name: 'Motion type', val: 'Rotation + translation (independent)' },
+        { name: 'Constrained DOF', val: '4 of 6' },
+        { name: 'Common robot type', val: 'Cylindrical robots, turret lifts' },
+        { name: 'vs. helical', val: 'Independent (not coupled) motions' },
+      ]
+    },
+  };
+
+  let current = 'revolute';
+
+  function select(id) {
+    current = id;
+    document.querySelectorAll('.joint-card').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+    const d = details[id];
+    document.getElementById('d-label').textContent = d.label;
+    document.getElementById('d-heading').textContent = d.heading;
+    document.getElementById('d-body').innerHTML = d.body;
+    document.getElementById('d-stats').innerHTML = d.stats.map(s =>
+      `<div class="stat-row"><div class="stat-name">${s.name}</div><div class="stat-val">${s.val}</div></div>`
+    ).join('');
+    const panel = document.getElementById('detail-panel');
+    panel.classList.add('visible');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  select('revolute');
+</script>
+</body>
+</html>
