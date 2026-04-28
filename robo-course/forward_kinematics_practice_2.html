@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forward Kinematics — Visual Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --surface2: #1e2332;
+  --rule: #2a3045;
+  --ink: #e8eaf0;
+  --ink2: #8b90a0;
+  --ink3: #4a5068;
+  --blue: #4d9ef7;
+  --blue-dim: #1e3a5f;
+  --red: #f7614d;
+  --red-dim: #5f1e1e;
+  --green: #4df7a0;
+  --green-dim: #1e5f3a;
+  --amber: #f7c94d;
+  --amber-dim: #5f4a1e;
+  --purple: #b06ef7;
+  --purple-dim: #3a1e5f;
+  --joint-color: #f7c94d;
+  --link-color: #4d9ef7;
+  --ee-color: #4df7a0;
+  --frame-color: #f7614d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+.page { max-width: 920px; margin: 0 auto; padding: 60px 36px 120px; }
+
+/* Header */
+.header {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 32px;
+  margin-bottom: 64px;
+}
+.header .tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 14px;
+}
+.header h1 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.header h1 em { font-style: italic; color: var(--blue); }
+.header .sub { color: var(--ink2); font-size: 16px; max-width: 560px; }
+
+/* Progress dots */
+.progress {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 64px;
+}
+.pdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--rule);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pdot.active { background: var(--blue); }
+.pdot.done   { background: var(--green); }
+.pline { flex: 1; height: 1px; background: var(--rule); }
+
+/* Chapter */
+.chapter { margin-bottom: 96px; }
+.ch-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.ch-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.ch-title {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Two-column layout */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 28px 0;
+}
+.split.wide { grid-template-columns: 1.2fr 1fr; }
+@media (max-width: 680px) { .split, .split.wide { grid-template-columns: 1fr; } }
+
+/* Canvas cards */
+.canvas-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.canvas-card .cc-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.canvas-card canvas { display: block; width: 100%; }
+
+/* Matrix display */
+.mat-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+.mat-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink2);
+  margin-bottom: 2px;
+}
+.mat {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: relative;
+  padding: 8px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.mat::before, .mat::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; width: 2px;
+  border: 1.5px solid var(--ink2);
+}
+.mat::before { left: 4px; border-right: none; border-radius: 1px 0 0 1px; }
+.mat::after  { right: 4px; border-left: none; border-radius: 0 1px 1px 0; }
+.mat.m3 { grid-template-columns: repeat(3, 1fr); }
+.mat.m2 { grid-template-columns: repeat(2, 1fr); }
+.mat.m1 { grid-template-columns: 1fr; }
+.mc { padding: 4px 8px; text-align: center; font-size: 12px; line-height: 1.3; }
+.mc.r { color: var(--blue); }
+.mc.t { color: var(--green); }
+.mc.b { color: var(--ink3); }
+.mc.hi { color: var(--amber); }
+.mc.sym { font-style: italic; }
+
+/* Equation line */
+.eq {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--ink2);
+  margin: 4px 0;
+  line-height: 1.6;
+}
+.eq .lhs { color: var(--amber); }
+.eq .rhs { color: var(--blue); }
+.eq .op  { color: var(--ink3); }
+.eq .g   { color: var(--green); }
+.eq .r   { color: var(--red); }
+
+/* Slider rows */
+.sliders { padding: 12px 16px 16px; border-top: 1px solid var(--rule); }
+.sl-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sl-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink2); }
+.sl-val { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--amber); text-align: right; }
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--rule);
+  border-radius: 2px;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+}
+
+/* Info boxes */
+.prose { color: var(--ink2); font-size: 15px; margin-bottom: 16px; line-height: 1.75; }
+.prose strong { color: var(--ink); font-weight: 500; }
+.prose code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--surface2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--blue);
+}
+
+/* Code snippet */
+.code {
+  background: var(--surface2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.9;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--ink2);
+}
+.code .kw  { color: var(--purple); }
+.code .fn  { color: var(--blue); }
+.code .cm  { color: var(--ink3); }
+.code .nu  { color: var(--amber); }
+.code .st  { color: var(--green); }
+
+/* Callout */
+.callout {
+  background: var(--blue-dim);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  padding: 14px 18px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.65;
+}
+.callout strong { color: var(--blue); font-weight: 500; }
+.callout.green { background: var(--green-dim); border-color: var(--green); }
+.callout.green strong { color: var(--green); }
+.callout.amber { background: var(--amber-dim); border-color: var(--amber); }
+.callout.amber strong { color: var(--amber); }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--ink2);
+  margin: 10px 0;
+}
+.ld { display: flex; align-items: center; gap: 6px; }
+.lc { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+/* Section divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 64px 0;
+}
+
+/* Result readout */
+.readout {
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--green);
+  margin-top: 8px;
+  line-height: 1.7;
+}
+
+/* Full-width canvas */
+.canvas-full {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+.canvas-full .cc-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.canvas-full canvas { display: block; width: 100%; }
+
+/* Step badge */
+.step-badge {
+  display: inline-block;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+}
+
+.mat-eq-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.mat-eq-op {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 18px;
+  color: var(--ink3);
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="tag">SO-101 · Robotics · Forward Kinematics</div>
+  <h1>From joint angles<br>to <em>end-effector pose</em></h1>
+  <p class="sub">A visual build-up: one link, then two, then three — and how each step translates directly into code.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAPTER 1 — ONE LINK
+══════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch1">
+  <div class="ch-header">
+    <span class="ch-num">chapter 01</span>
+    <span class="ch-title">One link, one revolute joint</span>
+  </div>
+
+  <p class="prose">Start with the simplest case: a single rigid link of length <strong>L</strong>, attached to the world at one end by a revolute joint that rotates by angle <strong>θ</strong> about the Z-axis. Where is the other end?</p>
+
+  <div class="split wide">
+    <div>
+      <div class="canvas-card">
+        <div class="cc-header">diagram — drag the slider</div>
+        <canvas id="c1" height="280"></canvas>
+        <div class="sliders">
+          <div class="sl-row">
+            <span class="sl-lbl">θ (joint)</span>
+            <input type="range" id="sl1-th" min="-150" max="150" value="35" oninput="draw1()">
+            <span class="sl-val" id="sv1-th">35°</span>
+          </div>
+          <div class="sl-row">
+            <span class="sl-lbl">L (length)</span>
+            <input type="range" id="sl1-L" min="40" max="140" value="100" oninput="draw1()">
+            <span class="sl-val" id="sv1-L">1.0</span>
+          </div>
+        </div>
+      </div>
+      <div class="legend" style="padding:0 4px;margin-top:8px;">
+        <div class="ld"><div class="lc" style="background:var(--joint-color)"></div>joint (world origin)</div>
+        <div class="ld"><div class="lc" style="background:var(--link-color)"></div>link</div>
+        <div class="ld"><div class="lc" style="background:var(--ee-color)"></div>end-effector</div>
+      </div>
+    </div>
+
+    <div class="mat-wrap" style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;">
+      <div class="step-badge">step 1 — the transform matrix</div>
+      <p class="prose" style="font-size:13px;">A single transform <strong style="color:var(--amber)">T</strong> maps any point in the end-effector frame to the world frame. It packs rotation + translation together:</p>
+
+      <div class="mat-label">T = [ R | t ] — 3×3 homogeneous (2D):</div>
+      <div class="mat-eq-row">
+        <div class="mat m3">
+          <div class="mc r sym">cos θ</div><div class="mc r sym">−sin θ</div><div class="mc t">L·cos θ</div>
+          <div class="mc r sym">sin θ</div><div class="mc r sym">cos θ</div><div class="mc t">L·sin θ</div>
+          <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+        </div>
+      </div>
+
+      <div class="mat-label" style="margin-top:8px;">live values (θ = <span id="m1-th-lbl">35</span>°, L = <span id="m1-L-lbl">1.0</span>):</div>
+      <div class="mat-eq-row">
+        <div class="mat m3" id="live-mat-1">
+          <div class="mc r" id="lm1-00">—</div><div class="mc r" id="lm1-01">—</div><div class="mc t" id="lm1-03">—</div>
+          <div class="mc r" id="lm1-10">—</div><div class="mc r" id="lm1-11">—</div><div class="mc t" id="lm1-13">—</div>
+          <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+        </div>
+      </div>
+
+      <div class="readout" id="read1">EE position: x = —, y = —</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>What the matrix tells you:</strong> The blue 2×2 block is the rotation — it says "the end-effector's x-axis points in direction (cos θ, sin θ) in world coordinates." The green column is the translation — it's exactly where the end-effector origin is. The bottom row [0 0 1] is always fixed. Points are represented as (x, y, <strong>1</strong>) — that fake extra 1 is what activates the translation column.
+  </div>
+
+  <div class="step-badge" style="margin-top:24px;">step 2 — the code (2D, 3×3 matrix)</div>
+  <div class="code"><span class="kw">def</span> <span class="fn">get_T</span>(theta_deg, L):
+    c = np.cos(np.deg2rad(theta_deg))
+    s = np.sin(np.deg2rad(theta_deg))
+
+    <span class="cm"># 2D homogeneous: 3×3</span>
+    <span class="cm"># point (x,y) is represented as (x, y, 1)</span>
+    T = np.array([[c, -s, L*c],   <span class="cm"># rotation | translation</span>
+                  [s,  c, L*s],
+                  [<span class="nu">0</span>,  <span class="nu">0</span>,   <span class="nu">1</span>]])  <span class="cm"># always [0, 0, 1]</span>
+    <span class="kw">return</span> T
+
+<span class="cm"># End-effector position is the last column (first 2 rows):</span>
+position = T[<span class="nu">0</span>:<span class="nu">2</span>, <span class="nu">2</span>]   <span class="cm"># [tx, ty]</span></div>
+
+  <div class="callout amber">
+    <strong>Notice:</strong> the translation column <code>[L·cosθ, L·sinθ, 0]</code> is just basic trigonometry — the tip of a link of length L at angle θ. The matrix is just a convenient way to package this.
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAPTER 2 — TWO LINKS
+══════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch2">
+  <div class="ch-header">
+    <span class="ch-num">chapter 02</span>
+    <span class="ch-title">Two links — chaining transforms</span>
+  </div>
+
+  <p class="prose">Now add a second link. Joint 2 sits at the tip of link 1, and can rotate independently by angle <strong>θ₂</strong>. Where is the new tip?</p>
+  <p class="prose">We can't just add angles — the second joint's displacement is expressed in <strong>frame 1's coordinates</strong>, not the world. We need to transform it. That's exactly what matrix multiplication does.</p>
+
+  <div class="canvas-full">
+    <div class="cc-header">two-link arm — drag both sliders</div>
+    <canvas id="c2" height="320"></canvas>
+    <div class="sliders">
+      <div class="sl-row">
+        <span class="sl-lbl">θ₁ (joint 1)</span>
+        <input type="range" id="sl2-th1" min="-150" max="150" value="30" oninput="draw2()">
+        <span class="sl-val" id="sv2-th1">30°</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl">θ₂ (joint 2)</span>
+        <input type="range" id="sl2-th2" min="-150" max="150" value="50" oninput="draw2()">
+        <span class="sl-val" id="sv2-th2">50°</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="step-badge">T₁ — world to joint 1</div>
+      <div class="mat-label">describes link 1 (length L₁, angle θ₁)</div>
+      <div class="mat-eq-row">
+        <div class="mat m3">
+          <div class="mc r">c₁</div><div class="mc r">−s₁</div><div class="mc t">L₁c₁</div>
+          <div class="mc r">s₁</div><div class="mc r">c₁</div><div class="mc t">L₁s₁</div>
+          <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+        </div>
+      </div>
+      <div class="readout" id="read2-T1">Joint 2 position: x = —, y = —</div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="step-badge">T₁₂ — joint 1 to joint 2</div>
+      <div class="mat-label">describes link 2 (length L₂, angle θ₂ <em>relative to link 1</em>)</div>
+      <div class="mat-eq-row">
+        <div class="mat m3">
+          <div class="mc r">c₂</div><div class="mc r">−s₂</div><div class="mc t">L₂c₂</div>
+          <div class="mc r">s₂</div><div class="mc r">c₂</div><div class="mc t">L₂s₂</div>
+          <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+        </div>
+      </div>
+      <div class="readout" id="read2-T12" style="color:var(--ink2);">local offset of EE from joint 2</div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:0;">
+    <strong>Key question:</strong> T₁₂ gives the EE position <em>in link 1's frame</em>. To get it in the <em>world</em> frame, we premultiply by T₁. That cancels "link 1's frame" from both sides, leaving the world frame.
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;margin:16px 0;">
+    <div class="step-badge">T_world→EE = T₁ · T₁₂</div>
+    <div class="mat-label">the chain product — live values:</div>
+    <div class="mat-eq-row">
+      <div class="mat m3" id="live-mat-2">
+        <div class="mc r" id="lm2-00">—</div><div class="mc r" id="lm2-01">—</div><div class="mc t" id="lm2-03">—</div>
+        <div class="mc r" id="lm2-10">—</div><div class="mc r" id="lm2-11">—</div><div class="mc t" id="lm2-13">—</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+      </div>
+    </div>
+    <div class="readout" id="read2-ee">EE world position: x = —, y = —</div>
+  </div>
+
+  <div class="step-badge">the code — two links (2D, 3×3)</div>
+  <div class="code"><span class="kw">def</span> <span class="fn">get_T1</span>(theta1_deg, L1):
+    c, s = np.cos(np.deg2rad(theta1_deg)), np.sin(np.deg2rad(theta1_deg))
+    <span class="kw">return</span> np.array([[c, -s, L1*c],
+                     [s,  c, L1*s],
+                     [<span class="nu">0</span>,  <span class="nu">0</span>,    <span class="nu">1</span>]])
+
+<span class="kw">def</span> <span class="fn">get_T12</span>(theta2_deg, L2):          <span class="cm"># same structure — local frame!</span>
+    c, s = np.cos(np.deg2rad(theta2_deg)), np.sin(np.deg2rad(theta2_deg))
+    <span class="kw">return</span> np.array([[c, -s, L2*c],
+                     [s,  c, L2*s],
+                     [<span class="nu">0</span>,  <span class="nu">0</span>,    <span class="nu">1</span>]])
+
+<span class="cm"># Chain them — this is the forward kinematics:</span>
+T_world_ee = get_T1(theta1, L1) @ get_T12(theta2, L2)
+
+position = T_world_ee[<span class="nu">0</span>:<span class="nu">2</span>, <span class="nu">2</span>]   <span class="cm"># top of last column = EE in world</span></div>
+
+  <div class="callout green">
+    <strong>The pattern:</strong> both functions look identical — same structure, same assembly. The only difference is which angle and which length they take. Each function only "knows about" its own joint. The chain product handles the rest.
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAPTER 3 — THREE LINKS + DISPLACEMENT
+══════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch3">
+  <div class="ch-header">
+    <span class="ch-num">chapter 03</span>
+    <span class="ch-title">Three links — and a fixed displacement</span>
+  </div>
+
+  <p class="prose">The SO-101 has one more ingredient: each joint transform also includes a <strong>fixed displacement</strong> — the physical offset between two joint axes that doesn't depend on any joint angle. This is just the link geometry: how far apart the screws are.</p>
+  <p class="prose">The displacement goes in the <strong>translation column</strong>, alongside the rotation. The joint angle only affects the rotation block.</p>
+
+  <div class="canvas-full">
+    <div class="cc-header">three-link arm with fixed offsets — all three sliders</div>
+    <canvas id="c3" height="360"></canvas>
+    <div class="sliders">
+      <div class="sl-row">
+        <span class="sl-lbl">θ₁ (joint 1)</span>
+        <input type="range" id="sl3-th1" min="-150" max="150" value="20" oninput="draw3()">
+        <span class="sl-val" id="sv3-th1">20°</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl">θ₂ (joint 2)</span>
+        <input type="range" id="sl3-th2" min="-150" max="150" value="40" oninput="draw3()">
+        <span class="sl-val" id="sv3-th2">40°</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl">θ₃ (joint 3)</span>
+        <input type="range" id="sl3-th3" min="-150" max="150" value="-30" oninput="draw3()">
+        <span class="sl-val" id="sv3-th3">-30°</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;margin:16px 0;">
+    <div class="step-badge">what each transform looks like — with displacement</div>
+    <p class="prose" style="font-size:13px;margin-bottom:12px;">For joint 2 of SO-101, the displacement <code>d = (−0.0304, −0.0183, −0.0542)</code> m is the fixed vector from joint 1's axis to joint 2's axis. The joint angle <strong>only enters the rotation block</strong>:</p>
+
+    <div class="mat-eq-row">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--amber);">T₁₂</span>
+      <span class="mat-eq-op">=</span>
+      <div class="mat">
+        <div class="mc r">c₂</div><div class="mc r">−s₂</div><div class="mc b">0</div><div class="mc t">d_x</div>
+        <div class="mc r">s₂</div><div class="mc r">c₂</div><div class="mc b">0</div><div class="mc t">d_y</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div><div class="mc t">d_z</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+      </div>
+    </div>
+    <p class="prose" style="font-size:13px;margin-top:10px;margin-bottom:0;">The green column <code>[d_x, d_y, d_z]</code> is hardcoded from the URDF — it never changes. Only the blue block rotates.</p>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;margin:16px 0;">
+    <div class="step-badge">live chain product — T₁ · T₁₂ · T₂₃</div>
+    <div class="mat-eq-row">
+      <div class="mat m3" id="live-mat-3">
+        <div class="mc r" id="lm3-00">—</div><div class="mc r" id="lm3-01">—</div><div class="mc t" id="lm3-03">—</div>
+        <div class="mc r" id="lm3-10">—</div><div class="mc r" id="lm3-11">—</div><div class="mc t" id="lm3-13">—</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+      </div>
+    </div>
+    <div class="readout" id="read3-ee">EE world position: x = —, y = —</div>
+  </div>
+
+  <div class="step-badge">the code — three links, with displacement</div>
+  <div class="code"><span class="kw">def</span> <span class="fn">get_T12</span>(theta2_deg):
+    <span class="cm"># Fixed displacement — from URDF, never changes</span>
+    displacement = np.array([-<span class="nu">0.0304</span>, -<span class="nu">0.0183</span>, -<span class="nu">0.0542</span>]).reshape(<span class="nu">3</span>,<span class="nu">1</span>)
+
+    <span class="cm"># Rotation — only this changes with the joint angle</span>
+    c, s = np.cos(np.deg2rad(theta2_deg)), np.sin(np.deg2rad(theta2_deg))
+    R = np.array([[c, -s, <span class="nu">0</span>],
+                  [s,  c, <span class="nu">0</span>],
+                  [<span class="nu">0</span>,  <span class="nu">0</span>, <span class="nu">1</span>]])
+
+    <span class="cm"># Assemble the 4×4 block</span>
+    T = np.block([[R, displacement],
+                  [<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">1</span>]])
+    <span class="kw">return</span> T
+
+<span class="cm"># Full chain — same @ operator, just more terms:</span>
+T_world_ee = get_T1(th1) @ get_T12(th2) @ get_T23(th3)
+
+position = T_world_ee[<span class="nu">0</span>:<span class="nu">3</span>, <span class="nu">3</span>]
+rotation = T_world_ee[<span class="nu">0</span>:<span class="nu">3</span>, <span class="nu">0</span>:<span class="nu">3</span>]</div>
+</div>
+
+<hr class="divider">
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAPTER 4 — THE SO-101 PATTERN
+══════════════════════════════════════════════════════════ -->
+<div class="chapter" id="ch4">
+  <div class="ch-header">
+    <span class="ch-num">chapter 04</span>
+    <span class="ch-title">The SO-101 pattern</span>
+  </div>
+
+  <p class="prose">The SO-101 has one extra ingredient on top of what we've seen: <strong>axis-alignment rotations</strong>. In a perfectly designed robot, every joint would rotate about the same axis in the same direction. In a real robot, the joints point in different directions, so each transform needs a fixed "setup" rotation before the joint variable is applied.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;">
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="step-badge">what we've done so far</div>
+      <div class="eq"><span class="lhs">R</span> <span class="op">=</span> <span class="rhs">Rz(θ)</span></div>
+      <p class="prose" style="font-size:13px;margin:8px 0 0;">Joint variable only. Works when all joints rotate about the same axis.</p>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="step-badge">SO-101 pattern</div>
+      <div class="eq"><span class="lhs">R</span> <span class="op">=</span> <span class="rhs">R_align</span> <span class="op">·</span> <span class="rhs">Rz(θ)</span></div>
+      <p class="prose" style="font-size:13px;margin:8px 0 0;">Fixed alignment first, then joint variable. The alignment comes from the URDF.</p>
+    </div>
+  </div>
+
+  <p class="prose">For example, <code>get_gw1</code> uses <code>Rz(180) @ Rx(180)</code> as the alignment — these two constant rotations flip the Z-axis to point upward from the robot base. Then <code>Rz(θ₁)</code> rotates the shoulder pan on top of that.</p>
+
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;margin:16px 0;">
+    <div class="step-badge">the full recipe — every get_gXY in the codebase</div>
+    <div class="code" style="margin:0;border-radius:6px;"><span class="kw">def</span> <span class="fn">get_gXY</span>(theta_deg):
+    <span class="cm"># ① Fixed — from URDF geometry</span>
+    displacement = (dx, dy, dz)
+
+    <span class="cm"># ② Fixed — re-orient axes so the joint spins about the right direction</span>
+    <span class="cm"># ③ Variable — the actual joint angle, always Rz(θ) for SO-101</span>
+    rotation = R_align @ Rz(theta_deg)
+
+    <span class="cm"># ④ Assemble</span>
+    pose = np.block([[rotation, np.array(displacement).reshape(<span class="nu">3</span>,<span class="nu">1</span>)],
+                     [<span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">1</span>]])
+    <span class="kw">return</span> pose
+
+<span class="cm"># Forward kinematics — chain all six transforms:</span>
+T = gw1 @ g12 @ g23 @ g34 @ g45 @ g5t
+
+position = T[<span class="nu">0</span>:<span class="nu">3</span>, <span class="nu">3</span>]   <span class="cm"># where is the tip?</span>
+rotation = T[<span class="nu">0</span>:<span class="nu">3</span>, <span class="nu">0</span>:<span class="nu">3</span>]   <span class="cm"># how is the tip oriented?</span></div>
+  </div>
+
+  <div class="callout green">
+    <strong>The chain rule in one sentence:</strong> T_w1 carries everything downstream with it — when joint 1 rotates, joints 2–5 and the tool tip all move together, because T_w1 is the leftmost factor in the product. Each joint only "knows about" its own angle. The multiplication handles how they compose.
+  </div>
+
+  <!-- SUMMARY TABLE -->
+  <div style="margin-top:32px;">
+    <div class="step-badge">summary — what each part of the matrix does</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">
+      <thead>
+        <tr>
+          <th style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);">Matrix part</th>
+          <th style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);">What it encodes</th>
+          <th style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);">Changes with θ?</th>
+          <th style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);">In code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--blue);font-family:'IBM Plex Mono',monospace;">R (3×3 top-left)</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--ink2);">How the child frame is oriented relative to the parent</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--green);">Yes — via Rz(θ)</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--blue);">R_align @ Rz(theta_deg)</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--green);font-family:'IBM Plex Mono',monospace;">t (3×1 top-right)</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--ink2);">Where the child frame's origin is in the parent frame</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);color:var(--ink3);">No — fixed geometry</td>
+          <td style="padding:10px 12px;border-bottom:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green);">displacement tuple</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px;color:var(--ink3);font-family:'IBM Plex Mono',monospace;">[0 0 0 1] (bottom)</td>
+          <td style="padding:10px 12px;color:var(--ink2);">Homogeneous convention — always this, enables matrix chaining</td>
+          <td style="padding:10px 12px;color:var(--ink3);">Never</td>
+          <td style="padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink3);">hardcoded 0,0,0,1</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- end page -->
+
+<script>
+const DEG = Math.PI / 180;
+const BG = '#0f1117';
+const SURFACE = '#181c27';
+const JOINT  = '#f7c94d';
+const LINK   = '#4d9ef7';
+const LINK2  = '#f7614d';
+const LINK3  = '#b06ef7';
+const EE     = '#4df7a0';
+const FRAME  = '#f7614d';
+const GRID   = '#2a3045';
+const TEXT   = '#8b90a0';
+const WHITE  = '#e8eaf0';
+
+function fmt(v) { return (v >= 0 ? ' ' : '') + v.toFixed(3); }
+
+/* ── helpers ── */
+function drawGrid(ctx, cx, cy, scale) {
+  ctx.strokeStyle = GRID;
+  ctx.lineWidth = 0.5;
+  for (let x = -20; x <= 20; x++) {
+    ctx.beginPath();
+    ctx.moveTo(cx + x * scale * 0.5, 0);
+    ctx.lineTo(cx + x * scale * 0.5, ctx.canvas.height);
+    ctx.stroke();
+  }
+  for (let y = -20; y <= 20; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, cy + y * scale * 0.5);
+    ctx.lineTo(ctx.canvas.width, cy + y * scale * 0.5);
+    ctx.stroke();
+  }
+  // axes
+  ctx.strokeStyle = '#3a4060';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, ctx.canvas.height); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(ctx.canvas.width, cy); ctx.stroke();
+}
+
+function drawJoint(ctx, x, y, r, color) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 2 * Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = BG;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawLink(ctx, x1, y1, x2, y2, color, width) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width || 4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function drawArrow(ctx, x, y, angle, len, color, label) {
+  const ex = x + Math.cos(angle) * len;
+  const ey = y - Math.sin(angle) * len;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  // arrowhead
+  const ah = 8;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - Math.cos(angle - 0.4) * ah, ey + Math.sin(angle - 0.4) * ah);
+  ctx.lineTo(ex - Math.cos(angle + 0.4) * ah, ey + Math.sin(angle + 0.4) * ah);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  if (label) {
+    ctx.fillStyle = color;
+    ctx.font = '12px IBM Plex Mono';
+    ctx.fillText(label, ex + 6, ey + 4);
+  }
+}
+
+function drawAngleArc(ctx, x, y, r, startAngle, endAngle, color, label) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, -endAngle, -startAngle, endAngle < startAngle);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (label) {
+    const mid = (startAngle + endAngle) / 2;
+    ctx.fillStyle = color;
+    ctx.font = '12px IBM Plex Mono';
+    ctx.fillText(label, x + Math.cos(mid) * (r + 14) - 6, y - Math.sin(mid) * (r + 14) + 4);
+  }
+}
+
+function drawLabel(ctx, x, y, text, color, align) {
+  ctx.fillStyle = color || TEXT;
+  ctx.font = '12px IBM Plex Mono';
+  ctx.textAlign = align || 'left';
+  ctx.fillText(text, x, y);
+  ctx.textAlign = 'left';
+}
+
+function getCanvas(id) {
+  const el = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = el.getBoundingClientRect();
+  // Store the original CSS height once, so repeated calls don't compound
+  if (!el.dataset.cssH) el.dataset.cssH = el.getBoundingClientRect().height || parseInt(el.getAttribute('height')) || 280;
+  const cssH = +el.dataset.cssH;
+  el.width  = rect.width * dpr;
+  el.height = cssH * dpr;
+  const ctx = el.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.W = rect.width;
+  ctx.H = cssH;
+  return ctx;
+}
+
+/* ══════════════════════════════════════════════════════
+   CHAPTER 1
+══════════════════════════════════════════════════════ */
+function draw1() {
+  const th = +document.getElementById('sl1-th').value;
+  const Lpx = +document.getElementById('sl1-L').value;
+  const L = Lpx / 100;
+  document.getElementById('sv1-th').textContent = th + '°';
+  document.getElementById('sv1-L').textContent = L.toFixed(1);
+  document.getElementById('m1-th-lbl').textContent = th;
+  document.getElementById('m1-L-lbl').textContent = L.toFixed(1);
+
+  const c = Math.cos(th * DEG), s = Math.sin(th * DEG);
+  const tx = L * c, ty = L * s;
+
+  // Live matrix
+  document.getElementById('lm1-00').textContent = fmt(c);
+  document.getElementById('lm1-01').textContent = fmt(-s);
+  document.getElementById('lm1-10').textContent = fmt(s);
+  document.getElementById('lm1-11').textContent = fmt(c);
+  document.getElementById('lm1-03').textContent = fmt(tx);
+  document.getElementById('lm1-13').textContent = fmt(ty);
+  document.getElementById('read1').textContent = `EE position:  x = ${tx.toFixed(4)} m,  y = ${ty.toFixed(4)} m`;
+
+  // Draw
+  const ctx = getCanvas('c1');
+  const W = ctx.W, H = ctx.H;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = SURFACE;
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W * 0.35, cy = H * 0.6;
+  const sc = Lpx;
+  drawGrid(ctx, cx, cy, sc * 0.6);
+
+  const ex = cx + tx * sc;
+  const ey = cy - ty * sc;
+
+  // angle arc
+  drawAngleArc(ctx, cx, cy, 36, 0, th * DEG, JOINT, `θ=${th}°`);
+
+  // reference line (zero angle)
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + 40, cy);
+  ctx.strokeStyle = GRID;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // link
+  drawLink(ctx, cx, cy, ex, ey, LINK, 5);
+
+  // frame at EE
+  drawArrow(ctx, ex, ey, th * DEG, 28, LINK2, 'x');
+  drawArrow(ctx, ex, ey, (th + 90) * DEG, 22, '#4df7a0', 'y');
+
+  // joints
+  drawJoint(ctx, cx, cy, 9, JOINT);
+  drawJoint(ctx, ex, ey, 7, EE);
+
+  // labels
+  drawLabel(ctx, cx + 6, cy - 14, 'O (world)', WHITE);
+  drawLabel(ctx, ex + 10, ey - 8, 'EE', EE);
+  drawLabel(ctx, (cx + ex) / 2 + 8, (cy + ey) / 2 - 8, `L=${L.toFixed(1)}`, LINK);
+
+  // coordinate readout
+  ctx.fillStyle = TEXT;
+  ctx.font = '11px IBM Plex Mono';
+  ctx.fillText(`(${tx.toFixed(3)}, ${ty.toFixed(3)})`, ex + 10, ey + 14);
+}
+
+/* ══════════════════════════════════════════════════════
+   CHAPTER 2
+══════════════════════════════════════════════════════ */
+function mm3(A, B) {
+  const R = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      for (let k = 0; k < 3; k++)
+        R[i][j] += A[i][k] * B[k][j];
+  return R;
+}
+
+function makeT2D(thdeg, L) {
+  const c = Math.cos(thdeg * DEG), s = Math.sin(thdeg * DEG);
+  return [[c, -s, L*c], [s, c, L*s], [0, 0, 1]];
+}
+
+function makeT2D_disp(thdeg, dx, dy) {
+  const c = Math.cos(thdeg * DEG), s = Math.sin(thdeg * DEG);
+  return [[c, -s, dx], [s, c, dy], [0, 0, 1]];
+}
+
+function draw2() {
+  const th1 = +document.getElementById('sl2-th1').value;
+  const th2 = +document.getElementById('sl2-th2').value;
+  document.getElementById('sv2-th1').textContent = th1 + '°';
+  document.getElementById('sv2-th2').textContent = th2 + '°';
+
+  const L1 = 1.0, L2 = 0.75;
+  const sc = 90;
+
+  const T1  = makeT2D(th1, L1);
+  const T12 = makeT2D(th2, L2);
+  const Twe = mm3(T1, T12);
+
+  const j2x = T1[0][2], j2y = T1[1][2];
+  const eex = Twe[0][2], eey = Twe[1][2];
+
+  // update matrices
+  document.getElementById('lm2-00').textContent = fmt(Twe[0][0]);
+  document.getElementById('lm2-01').textContent = fmt(Twe[0][1]);
+  document.getElementById('lm2-10').textContent = fmt(Twe[1][0]);
+  document.getElementById('lm2-11').textContent = fmt(Twe[1][1]);
+  document.getElementById('lm2-03').textContent = fmt(Twe[0][2]);
+  document.getElementById('lm2-13').textContent = fmt(Twe[1][2]);
+  document.getElementById('read2-T1').textContent  = `Joint 2 position:  x = ${j2x.toFixed(4)},  y = ${j2y.toFixed(4)}`;
+  document.getElementById('read2-ee').textContent  = `EE world position:  x = ${eex.toFixed(4)},  y = ${eey.toFixed(4)}`;
+
+  const ctx = getCanvas('c2');
+  const W = ctx.W, H = ctx.H;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = SURFACE;
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W * 0.35, cy = H * 0.65;
+  drawGrid(ctx, cx, cy, sc);
+
+  const j2px = cx + j2x * sc, j2py = cy - j2y * sc;
+  const eepx = cx + eex * sc, eepy = cy - eey * sc;
+
+  // angle arcs
+  drawAngleArc(ctx, cx, cy, 32, 0, th1 * DEG, JOINT, `θ₁`);
+  const a2abs = (th1 + th2) * DEG;
+  drawAngleArc(ctx, j2px, j2py, 26, th1 * DEG, a2abs, LINK2, `θ₂`);
+
+  // reference line from joint 2 along link 1 direction (for relative angle)
+  ctx.beginPath();
+  ctx.moveTo(j2px, j2py);
+  ctx.lineTo(j2px + Math.cos(th1 * DEG) * 30, j2py - Math.sin(th1 * DEG) * 30);
+  ctx.strokeStyle = GRID;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // links
+  drawLink(ctx, cx, cy, j2px, j2py, LINK, 5);
+  drawLink(ctx, j2px, j2py, eepx, eepy, LINK2, 5);
+
+  // frames
+  drawArrow(ctx, j2px, j2py, th1 * DEG, 22, LINK, 'x₁');
+  drawArrow(ctx, j2px, j2py, (th1 + 90) * DEG, 18, '#4df7a0', 'y₁');
+  drawArrow(ctx, eepx, eepy, a2abs, 20, LINK2, 'x₂');
+  drawArrow(ctx, eepx, eepy, a2abs + Math.PI / 2, 16, '#4df7a0', '');
+
+  // joints
+  drawJoint(ctx, cx, cy, 9, JOINT);
+  drawJoint(ctx, j2px, j2py, 8, LINK);
+  drawJoint(ctx, eepx, eepy, 7, EE);
+
+  // labels
+  drawLabel(ctx, cx + 6, cy - 14, 'O (world)', WHITE);
+  drawLabel(ctx, j2px + 8, j2py - 12, 'J₂', LINK);
+  drawLabel(ctx, eepx + 8, eepy - 8, 'EE', EE);
+  drawLabel(ctx, (cx + j2px) / 2 + 6, (cy + j2py) / 2 - 8, 'L₁', LINK);
+  drawLabel(ctx, (j2px + eepx) / 2 + 6, (j2py + eepy) / 2 - 8, 'L₂', LINK2);
+
+  ctx.fillStyle = TEXT;
+  ctx.font = '11px IBM Plex Mono';
+  ctx.fillText(`(${eex.toFixed(3)}, ${eey.toFixed(3)})`, eepx + 8, eepy + 16);
+}
+
+/* ══════════════════════════════════════════════════════
+   CHAPTER 3 — with fixed displacement
+══════════════════════════════════════════════════════ */
+function makeT2D_withDisp(thdeg, dx, dy) {
+  const c = Math.cos(thdeg * DEG), s = Math.sin(thdeg * DEG);
+  return [[c, -s, dx], [s, c, dy], [0, 0, 1]];
+}
+
+function draw3() {
+  const th1 = +document.getElementById('sl3-th1').value;
+  const th2 = +document.getElementById('sl3-th2').value;
+  const th3 = +document.getElementById('sl3-th3').value;
+  document.getElementById('sv3-th1').textContent = th1 + '°';
+  document.getElementById('sv3-th2').textContent = th2 + '°';
+  document.getElementById('sv3-th3').textContent = th3 + '°';
+
+  const sc = 80;
+  const L1 = 1.0, L2 = 0.85, L3 = 0.7;
+  const dx1 = L1, dy1 = 0;
+  const dx2 = L2, dy2 = 0;
+  const dx3 = L3, dy3 = 0;
+
+  const T1  = makeT2D_withDisp(th1, dx1, dy1);
+  const T12 = makeT2D_withDisp(th2, dx2, dy2);
+  const T23 = makeT2D_withDisp(th3, dx3, dy3);
+
+  const Tw2  = mm3(T1, T12);
+  const Twe  = mm3(Tw2, T23);
+
+  const j2x = T1[0][2],  j2y = T1[1][2];
+  const j3x = Tw2[0][2], j3y = Tw2[1][2];
+  const eex = Twe[0][2],  eey = Twe[1][2];
+
+  document.getElementById('lm3-00').textContent = fmt(Twe[0][0]);
+  document.getElementById('lm3-01').textContent = fmt(Twe[0][1]);
+  document.getElementById('lm3-10').textContent = fmt(Twe[1][0]);
+  document.getElementById('lm3-11').textContent = fmt(Twe[1][1]);
+  document.getElementById('lm3-03').textContent = fmt(Twe[0][2]);
+  document.getElementById('lm3-13').textContent = fmt(Twe[1][2]);
+  document.getElementById('read3-ee').textContent = `EE world position:  x = ${eex.toFixed(4)},  y = ${eey.toFixed(4)}`;
+
+  const ctx = getCanvas('c3');
+  const W = ctx.W, H = ctx.H;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = SURFACE;
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W * 0.18, cy = H * 0.65;
+  drawGrid(ctx, cx, cy, sc);
+
+  const j2px = cx + j2x * sc, j2py = cy - j2y * sc;
+  const j3px = cx + j3x * sc, j3py = cy - j3y * sc;
+  const eepx = cx + eex * sc, eepy = cy - eey * sc;
+
+  const a1 = th1 * DEG;
+  const a2 = (th1 + th2) * DEG;
+  const a3 = (th1 + th2 + th3) * DEG;
+
+  // angle arcs
+  drawAngleArc(ctx, cx, cy, 28, 0, a1, JOINT, `θ₁`);
+  drawAngleArc(ctx, j2px, j2py, 22, a1, a2, LINK2, `θ₂`);
+  drawAngleArc(ctx, j3px, j3py, 18, a2, a3, LINK3, `θ₃`);
+
+  // reference direction lines (dashed)
+  [[cx, cy, a1, 0], [j2px, j2py, a2, a1], [j3px, j3py, a3, a2]].forEach(([x, y, a, prev]) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(prev) * 25, y - Math.sin(prev) * 25);
+    ctx.strokeStyle = GRID;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // links
+  drawLink(ctx, cx, cy, j2px, j2py, LINK, 5);
+  drawLink(ctx, j2px, j2py, j3px, j3py, LINK2, 5);
+  drawLink(ctx, j3px, j3py, eepx, eepy, LINK3, 5);
+
+  // frame axes at each joint
+  drawArrow(ctx, j2px, j2py, a1, 18, LINK, 'x₁');
+  drawArrow(ctx, j3px, j3py, a2, 16, LINK2, 'x₂');
+  drawArrow(ctx, eepx, eepy, a3, 18, LINK3, 'x₃');
+  drawArrow(ctx, eepx, eepy, a3 + Math.PI / 2, 14, EE, 'y₃');
+
+  // joints
+  drawJoint(ctx, cx, cy, 9, JOINT);
+  drawJoint(ctx, j2px, j2py, 8, LINK);
+  drawJoint(ctx, j3px, j3py, 8, LINK2);
+  drawJoint(ctx, eepx, eepy, 7, EE);
+
+  // labels
+  drawLabel(ctx, cx + 6, cy - 14, 'O', WHITE);
+  drawLabel(ctx, j2px + 8, j2py - 12, 'J₂', LINK);
+  drawLabel(ctx, j3px + 8, j3py - 12, 'J₃', LINK2);
+  drawLabel(ctx, eepx + 8, eepy - 8, 'EE', EE);
+  drawLabel(ctx, (cx + j2px) / 2 + 4, (cy + j2py) / 2 - 8, 'L₁', LINK);
+  drawLabel(ctx, (j2px + j3px) / 2 + 4, (j2py + j3py) / 2 - 8, 'L₂', LINK2);
+  drawLabel(ctx, (j3px + eepx) / 2 + 4, (j3py + eepy) / 2 - 8, 'L₃', LINK3);
+
+  ctx.fillStyle = TEXT;
+  ctx.font = '11px IBM Plex Mono';
+  ctx.fillText(`(${eex.toFixed(3)}, ${eey.toFixed(3)})`, eepx + 8, eepy + 16);
+}
+
+// init on load and resize
+function initAll() { draw1(); draw2(); draw3(); }
+window.addEventListener('load', initAll);
+window.addEventListener('resize', initAll);
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAPTER 5 — 2D TO 3D TRANSITION
+══════════════════════════════════════════════════════════ -->
+
+<hr class="divider">
+
+<div class="chapter" id="ch5">
+  <div class="ch-header">
+    <span class="ch-num">chapter 05</span>
+    <span class="ch-title">From 2D to 3D — why the matrix grows</span>
+  </div>
+
+  <p class="prose">Everything in chapters 1–4 was 2D: one plane, one rotation axis, 3×3 matrices. The SO-101 lives in 3D space. Here is exactly what changes — and what stays the same.</p>
+
+  <!-- WHY THE FAKE 1 -->
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px;margin:24px 0;">
+    <div class="step-badge">why the homogeneous trick exists at all</div>
+    <p class="prose" style="font-size:14px;margin-bottom:16px;">A plain rotation matrix can never translate, because <strong>it always maps the origin to the origin</strong>. Multiplying any matrix M by the zero vector gives zero — no matter what M is.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0;">
+      <div>
+        <div class="mat-label" style="color:var(--red);margin-bottom:8px;">❌ rotation only (2×2) — can't translate</div>
+        <div class="mat-eq-row">
+          <div class="mat m3" style="grid-template-columns:repeat(2,1fr);">
+            <div class="mc r">c</div><div class="mc r">−s</div>
+            <div class="mc r">s</div><div class="mc r">c</div>
+          </div>
+          <span class="mat-eq-op">·</span>
+          <div class="mat m3" style="grid-template-columns:1fr;">
+            <div class="mc b">x</div>
+            <div class="mc b">y</div>
+          </div>
+          <span class="mat-eq-op">=</span>
+          <div class="mat m3" style="grid-template-columns:1fr;">
+            <div class="mc r">cx−sy</div>
+            <div class="mc r">sx+cy</div>
+          </div>
+        </div>
+        <p class="prose" style="font-size:12px;margin-top:8px;color:var(--red);">At (0,0): result is always (0,0). Can't shift the origin.</p>
+      </div>
+      <div>
+        <div class="mat-label" style="color:var(--green);margin-bottom:8px;">✓ homogeneous (3×3) — rotation + translation</div>
+        <div class="mat-eq-row">
+          <div class="mat m3">
+            <div class="mc r">c</div><div class="mc r">−s</div><div class="mc t">tx</div>
+            <div class="mc r">s</div><div class="mc r">c</div><div class="mc t">ty</div>
+            <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+          </div>
+          <span class="mat-eq-op">·</span>
+          <div class="mat m3" style="grid-template-columns:1fr;">
+            <div class="mc b">x</div>
+            <div class="mc b">y</div>
+            <div class="mc b" style="color:var(--amber);">1</div>
+          </div>
+          <span class="mat-eq-op">=</span>
+          <div class="mat m3" style="grid-template-columns:1fr;">
+            <div class="mc r">cx−sy+tx</div>
+            <div class="mc r">sx+cy+ty</div>
+            <div class="mc b">1</div>
+          </div>
+        </div>
+        <p class="prose" style="font-size:12px;margin-top:8px;color:var(--green);">The fake <span style="color:var(--amber)">1</span> "activates" the translation column. The point is still 2D — you ignore the 1 in the output.</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:8px;">
+      <strong>The +1 rule:</strong> n-dimensional space → (n+1)×(n+1) homogeneous transform. 2D needs 3×3. 3D needs <strong>4×4</strong>. The bottom row is always [0 … 0 1].
+    </div>
+  </div>
+
+  <!-- SIDE BY SIDE COMPARISON -->
+  <div class="step-badge">side-by-side: 2D (3×3) vs 3D (4×4)</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:16px 0;">
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="mat-label" style="margin-bottom:10px;">2D homogeneous — 3×3</div>
+      <div class="mat-label" style="font-size:10px;margin-bottom:6px;">point: (x, y, <span style="color:var(--amber)">1</span>)</div>
+      <div class="mat m3">
+        <div class="mc r">cos θ</div><div class="mc r">−sin θ</div><div class="mc t">tx</div>
+        <div class="mc r">sin θ</div><div class="mc r">cos θ</div><div class="mc t">ty</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+      </div>
+      <div style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.8;color:var(--ink2);">
+        R block: <span style="color:var(--blue)">2×2</span> — one rotation axis (Z only)<br>
+        t column: <span style="color:var(--green)">2 values</span> — (tx, ty)<br>
+        bottom row: <span style="color:var(--ink3)">[0, 0, 1]</span>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px;">
+      <div class="mat-label" style="margin-bottom:10px;">3D homogeneous — 4×4</div>
+      <div class="mat-label" style="font-size:10px;margin-bottom:6px;">point: (x, y, z, <span style="color:var(--amber)">1</span>)</div>
+      <div class="mat">
+        <div class="mc r">r₁₁</div><div class="mc r">r₁₂</div><div class="mc r">r₁₃</div><div class="mc t">tx</div>
+        <div class="mc r">r₂₁</div><div class="mc r">r₂₂</div><div class="mc r">r₂₃</div><div class="mc t">ty</div>
+        <div class="mc r">r₃₁</div><div class="mc r">r₃₂</div><div class="mc r">r₃₃</div><div class="mc t">tz</div>
+        <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+      </div>
+      <div style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.8;color:var(--ink2);">
+        R block: <span style="color:var(--blue)">3×3</span> — can rotate about X, Y, or Z<br>
+        t column: <span style="color:var(--green)">3 values</span> — (tx, ty, tz)<br>
+        bottom row: <span style="color:var(--ink3)">[0, 0, 0, 1]</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT CHANGES IN THE ROTATION BLOCK -->
+  <div style="background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px;margin:16px 0;">
+    <div class="step-badge">what changes: the rotation block</div>
+    <p class="prose" style="font-size:14px;margin-bottom:16px;">In 2D there is only <strong>one way to rotate</strong> — in the XY plane. In 3D you can rotate about any axis, so you need three elementary rotation matrices instead of one:</p>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);margin-bottom:8px;">Rx(θ)</div>
+        <div class="mat m3" style="font-size:11px;margin:0 auto;display:inline-grid;">
+          <div class="mc b">1</div><div class="mc b">0</div><div class="mc b">0</div>
+          <div class="mc b">0</div><div class="mc r">c</div><div class="mc r">−s</div>
+          <div class="mc b">0</div><div class="mc r">s</div><div class="mc r">c</div>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:8px;">X stays fixed<br>Y/Z mix</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);margin-bottom:8px;">Ry(θ)</div>
+        <div class="mat m3" style="font-size:11px;margin:0 auto;display:inline-grid;">
+          <div class="mc r">c</div><div class="mc b">0</div><div class="mc r">s</div>
+          <div class="mc b">0</div><div class="mc b">1</div><div class="mc b">0</div>
+          <div class="mc r">−s</div><div class="mc b">0</div><div class="mc r">c</div>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:8px;">Y stays fixed<br>X/Z mix</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);margin-bottom:8px;">Rz(θ)</div>
+        <div class="mat m3" style="font-size:11px;margin:0 auto;display:inline-grid;">
+          <div class="mc r">c</div><div class="mc r">−s</div><div class="mc b">0</div>
+          <div class="mc r">s</div><div class="mc r">c</div><div class="mc b">0</div>
+          <div class="mc b">0</div><div class="mc b">0</div><div class="mc b">1</div>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:8px;">Z stays fixed<br>X/Y mix</div>
+      </div>
+    </div>
+    <p class="prose" style="font-size:13px;margin-top:12px;margin-bottom:0;">Notice: <strong>Rz is identical to the 2D rotation matrix</strong>, just padded with a third row/column. Rotating in the XY plane is the same thing whether you're in 2D or 3D — you just now also have a Z axis that doesn't move.</p>
+  </div>
+
+  <!-- CODE COMPARISON -->
+  <div class="step-badge">code: 2D vs 3D transform function</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0;">
+    <div>
+      <div class="mat-label" style="margin-bottom:6px;">2D — 3×3 (what chapters 1–4 use)</div>
+      <div class="code" style="margin:0;">T = np.array([
+  [c, -s, tx],
+  [s,  c, ty],
+  [0,  0,  1]
+])
+
+<span class="cm"># extract position:</span>
+pos = T[0:2, 2]  <span class="cm"># [tx, ty]</span></div>
+    </div>
+    <div>
+      <div class="mat-label" style="margin-bottom:6px;">3D — 4×4 (the SO-101 code)</div>
+      <div class="code" style="margin:0;">T = np.block([
+  [R,  t ],   <span class="cm"># R is 3×3</span>
+  [0, 0, 0, 1]  <span class="cm"># t is 3×1</span>
+])
+
+<span class="cm"># extract position:</span>
+pos = T[0:3, 3]  <span class="cm"># [tx, ty, tz]</span></div>
+    </div>
+  </div>
+
+  <div class="callout green" style="margin-top:20px;">
+    <strong>Everything else is the same.</strong> The chain multiplication rule is identical: T_world→EE = T₁ · T₁₂ · … The bottom row is always zeros + 1. The translation is always the last column. The rotation block is always the top-left square. Only the sizes change: 3×3 → 4×4, and the rotation block gains the ability to express rotations about all three axes, which is why you need Rx, Ry, Rz in 3D but only one rotation matrix in 2D.
+  </div>
+</div>
+
+</body>
+</html>
