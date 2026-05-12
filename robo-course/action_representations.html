@@ -1,0 +1,67 @@
+
+<style>
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+.tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: var(--border-radius-md); margin-right: 6px; }
+.tag-speed { background: #E1F5EE; color: #085041; }
+.tag-express { background: #EEEDFE; color: #3C3489; }
+.tag-simple { background: #F1EFE8; color: #444441; }
+.bar-wrap { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.bar-label { font-size: 12px; color: var(--color-text-secondary); width: 90px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; }
+.bar-fill { height: 6px; border-radius: 3px; }
+.decoder-title { font-size: 16px; font-weight: 500; margin: 0 0 4px; }
+.decoder-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 10px; }
+.decoder-desc { font-size: 14px; color: var(--color-text-primary); line-height: 1.6; margin: 10px 0 12px; }
+.models { font-size: 12px; color: var(--color-text-secondary); }
+.models span { color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<h2 class="sr-only">Action decoder types in vision-language-action models, comparing expressiveness, speed, and simplicity</h2>
+
+<p style="font-size: 13px; color: var(--color-text-secondary); margin: 1rem 0 1.25rem;">The action decoder translates the model's internal representation into robot commands. Four main approaches exist, each trading off expressiveness, inference speed, and simplicity.</p>
+
+<div class="card">
+  <p class="decoder-title">Diffusion policy head</p>
+  <p class="decoder-sub">Iterative denoising → continuous action</p>
+  <span class="tag tag-express">most expressive</span><span class="tag" style="background:#FAECE7;color:#712B13;">slower inference</span>
+  <p class="decoder-desc">Starts from random noise and iteratively refines it into a plausible action. Naturally handles situations where multiple valid actions exist — for example, moving left or right around an obstacle. Each step of denoising costs compute, making this the slowest decoder at inference time.</p>
+  <div class="bar-wrap"><span class="bar-label">Expressiveness</span><div class="bar-track"><div class="bar-fill" style="width:95%;background:#7F77DD;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Inference speed</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:#7F77DD;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Simplicity</span><div class="bar-track"><div class="bar-fill" style="width:35%;background:#7F77DD;"></div></div></div>
+  <p class="models">Used by: <span>π0, Octo, HybridVLA, CogACT, RDT-1B</span></p>
+</div>
+
+<div class="card">
+  <p class="decoder-title">Autoregressive transformer</p>
+  <p class="decoder-sub">Token-by-token → discretized action sequence</p>
+  <span class="tag tag-express">sequentially expressive</span><span class="tag tag-simple">familiar architecture</span>
+  <p class="decoder-desc">Actions are discretized into tokens and predicted one at a time — exactly like next-word prediction in an LLM. Natural extension of the language model backbone. The tradeoff: discretization loses precision, and continuous motion is hard to capture with a fixed vocabulary of action tokens.</p>
+  <div class="bar-wrap"><span class="bar-label">Expressiveness</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:#1D9E75;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Inference speed</span><div class="bar-track"><div class="bar-fill" style="width:55%;background:#1D9E75;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Simplicity</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:#1D9E75;"></div></div></div>
+  <p class="models">Used by: <span>ACT, Gato, OpenDrive VLA, GRAPE, ECoT</span></p>
+</div>
+
+<div class="card">
+  <p class="decoder-title">MLP and token predictor</p>
+  <p class="decoder-sub">Single forward pass → direct action values</p>
+  <span class="tag tag-speed">fastest</span><span class="tag tag-simple">simplest</span>
+  <p class="decoder-desc">A feedforward network maps the model's output representation directly to continuous joint values or end-effector deltas. No iteration, no decoding loop — one forward pass gives you the action. The cost: a single deterministic output struggles when a task is genuinely ambiguous. Works well with enough data and constrained tasks.</p>
+  <div class="bar-wrap"><span class="bar-label">Expressiveness</span><div class="bar-track"><div class="bar-fill" style="width:40%;background:#D85A30;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Inference speed</span><div class="bar-track"><div class="bar-fill" style="width:95%;background:#D85A30;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Simplicity</span><div class="bar-track"><div class="bar-fill" style="width:95%;background:#D85A30;"></div></div></div>
+  <p class="models">Used by: <span>OpenVLA, RoboAgent, HiRT, ARM4R</span></p>
+</div>
+
+<div class="card">
+  <p class="decoder-title">Planner and MPC head</p>
+  <p class="decoder-sub">High-level waypoints → classical controller executes</p>
+  <span class="tag" style="background:#FAEEDA;color:#633806;">most modular</span><span class="tag" style="background:#FAEEDA;color:#633806;">safety-friendliest</span>
+  <p class="decoder-desc">The model outputs a plan — a sequence of subgoals or waypoints — and a separate Model Predictive Control (MPC) loop executes it. This lets you plug in decades of classical robotics work on trajectory optimization and safety constraints. The tradeoff: the planner and executor can be mismatched, and you reintroduce the hand-engineered pipeline that end-to-end learning was meant to replace.</p>
+  <div class="bar-wrap"><span class="bar-label">Expressiveness</span><div class="bar-track"><div class="bar-fill" style="width:70%;background:#BA7517;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Inference speed</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:#BA7517;"></div></div></div>
+  <div class="bar-wrap"><span class="bar-label">Simplicity</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:#BA7517;"></div></div></div>
+  <p class="models">Used by: <span>VoxPoser, FLaRe, Shake-VLA, LMM Planner Integration</span></p>
+</div>
+
+<p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 0.5rem;">Bar ratings are qualitative and relative across these four approaches.</p>
