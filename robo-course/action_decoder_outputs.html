@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Action Decoders in VLAs</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #111113;
+  --bg2:   #18181c;
+  --bg3:   #202026;
+  --border: rgba(255,255,255,0.07);
+  --text:  #dedad2;
+  --muted: #6a6860;
+  --mlp:   #e8c547;
+  --ar:    #e07b5a;
+  --diff:  #6b8fe0;
+  --mpc:   #b07be0;
+  --mono:  'JetBrains Mono', monospace;
+  --sans:  'Sora', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+.page { max-width: 980px; margin: 0 auto; padding: 52px 28px 80px; }
+
+.page-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+h1 { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 14px; }
+.intro { font-size: 15px; color: var(--muted); max-width: 640px; line-height: 1.75; font-weight: 300; margin-bottom: 52px; }
+
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 2px; }
+.tab {
+  padding: 10px 18px; background: var(--bg2); border: none;
+  color: var(--muted); font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.08em; cursor: pointer; border-radius: 8px 8px 0 0;
+  transition: all 0.15s; text-transform: uppercase;
+}
+.tab:hover { color: var(--text); background: var(--bg3); }
+.tab.active { color: var(--text); background: var(--bg3); border-bottom: 2px solid var(--tab-color); }
+
+.panel {
+  display: none; background: var(--bg3); border-radius: 0 8px 8px 8px;
+  padding: 36px; margin-bottom: 48px; border: 1px solid var(--border);
+  animation: fadein 0.18s ease;
+}
+.panel.active { display: block; }
+@keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+.panel-num { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--panel-color); opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; }
+.panel-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.panel-sub { font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 28px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+.col-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
+.col-text { font-size: 13px; color: #b0ada6; line-height: 1.8; font-weight: 300; }
+
+.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; margin-top: 24px; }
+
+.code-block {
+  background: var(--bg); border-radius: 8px; padding: 18px 22px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.9;
+  border: 1px solid var(--border); margin-bottom: 14px;
+  overflow-x: auto; white-space: pre;
+}
+.c { color: var(--muted); }
+.v { color: var(--panel-color); }
+.k { color: #c0bdb6; }
+.s { color: #9bc4a0; }
+
+.callout {
+  border-left: 2px solid var(--panel-color); padding: 12px 16px;
+  background: rgba(255,255,255,0.02); border-radius: 0 6px 6px 0;
+  font-size: 13px; color: #a0a09a; line-height: 1.75; margin-top: 20px; font-weight: 300;
+}
+.callout strong { color: var(--panel-color); font-weight: 500; }
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+.arm-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; font-family: var(--mono); font-size: 11px; }
+.arm-label { width: 120px; color: var(--muted); flex-shrink: 0; }
+.arm-track { flex: 1; height: 5px; background: var(--bg2); border-radius: 3px; }
+.arm-fill  { height: 100%; border-radius: 3px; background: var(--panel-color); opacity: 0.6; }
+.arm-val   { width: 80px; text-align: right; color: var(--panel-color); font-size: 11px; }
+
+.token-strip { display: flex; gap: 4px; flex-wrap: wrap; margin: 10px 0; }
+.tok { padding: 4px 9px; border-radius: 5px; font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); }
+.tok.at { border-color: var(--ar); color: var(--ar); background: rgba(224,123,90,0.07); cursor: default; }
+.tok.wt { color: #8a8880; }
+
+.diff-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.diff-node { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.diff-circle {
+  width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  text-align: center; line-height: 1.3; transition: border-color 0.2s;
+}
+.diff-circle:hover { border-color: var(--diff); }
+.diff-arrow { color: var(--muted); font-size: 14px; }
+
+.pipeline { display: flex; align-items: stretch; margin: 14px 0; }
+.pipe-box { flex: 1; padding: 14px 12px; background: var(--bg2); border: 1px solid var(--border); font-family: var(--mono); font-size: 11px; line-height: 1.6; }
+.pipe-box:first-child { border-radius: 6px 0 0 6px; }
+.pipe-box:last-child  { border-radius: 0 6px 6px 0; }
+.pipe-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
+.pipe-val   { color: var(--mpc); }
+.pipe-arrow { display: flex; align-items: center; padding: 0 6px; color: var(--muted); font-size: 16px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-label">VLA internals · lecture material</div>
+  <h1>Action decoders —<br>what does each one output?</h1>
+  <p class="intro">The four decoder families from the paper's taxonomy. All four receive the same input: a fused vision-language embedding representing what the robot sees and what it has been asked to do. What they do with it differs entirely.</p>
+
+  <div class="tabs">
+    <button class="tab active" style="--tab-color:var(--mlp)" onclick="show('mlp',this)">01 · MLP &amp; token predictor</button>
+    <button class="tab" style="--tab-color:var(--ar)"  onclick="show('ar',this)">02 · Autoregressive transformer</button>
+    <button class="tab" style="--tab-color:var(--diff)" onclick="show('diff',this)">03 · Diffusion policy head</button>
+    <button class="tab" style="--tab-color:var(--mpc)"  onclick="show('mpc',this)">04 · Planner &amp; MPC head</button>
+  </div>
+
+  <!-- 01 MLP -->
+  <div class="panel active" id="panel-mlp" style="--panel-color:var(--mlp)">
+    <div class="panel-num">01 · direct prediction</div>
+    <div class="panel-title">MLP and token predictor</div>
+    <div class="panel-sub">OpenVLA, TraceVLA, RoboMamba — efficient low-level control</div>
+
+    <div class="two-col">
+      <div>
+        <div class="col-label">The idea</div>
+        <div class="col-text">The vision-language embedding passes through one or a few linear layers and directly produces an action vector. One observation in, one action out. No iteration, no sampling. It is the simplest possible decoder — whatever the network learned during training is frozen into the weights, and inference is just a few matrix multiplications.</div>
+      </div>
+      <div>
+        <div class="col-label">What the robot receives</div>
+        <div class="col-text">A single action vector — typically 7 numbers for a standard arm: 6 joint angles in radians and a gripper value between 0 (open) and 1 (closed). This gets sent to the robot controller immediately. The model is queried again at the next control timestep.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Literal output — one forward pass, pick-and-place task</div>
+    <div class="code-block"><span class="c"># Vision + language embedding → two linear layers → action vector</span>
+<span class="c"># Output shape: [7]  — one action for this single timestep</span>
+
+<span class="k">action</span> = mlp_head(embedding)
+
+<span class="k">action</span> = [<span class="v">+0.03</span>, <span class="v">−0.31</span>, <span class="v">+0.74</span>, <span class="v">+1.18</span>, <span class="v">−0.07</span>, <span class="v">+0.41</span>, <span class="v">0.04</span>]
+<span class="c">#          j1      j2      j3      j4      j5      j6    gripper</span>
+<span class="c">#          radians                                        0=open 1=closed</span></div>
+
+    <div class="section-label">Joint values this timestep</div>
+    <div id="mlp-bars"></div>
+
+    <div class="callout">
+      <strong>The core limitation:</strong> the MLP always produces one answer — a single point in action space. If training demonstrations contain two valid ways to grasp something (left side, right side), the MLP learns to predict somewhere in between. That in-between position may not be a valid grasp at all. This is the averaging problem that motivates diffusion-based decoders.
+    </div>
+  </div>
+
+  <!-- 02 AUTOREGRESSIVE -->
+  <div class="panel" id="panel-ar" style="--panel-color:var(--ar)">
+    <div class="panel-num">02 · token-by-token generation</div>
+    <div class="panel-title">Autoregressive transformer</div>
+    <div class="panel-sub">Gato, RT-2 — generates action sequences step by step</div>
+
+    <div class="two-col">
+      <div>
+        <div class="col-label">The idea</div>
+        <div class="col-text">Actions are turned into discrete tokens — the same mechanism the model uses to generate words. Each joint dimension is divided into bins (e.g. 256 bins covering the joint's full range). The model generates one token at a time, feeding each result back in as context before generating the next. No new architecture is needed: the LLM's existing next-token machinery handles everything.</div>
+      </div>
+      <div>
+        <div class="col-label">What the robot receives</div>
+        <div class="col-text">A sequence of bin indices, decoded back into continuous joint values. Because bins have finite width, there is always a small quantisation error — you cannot command finer than one bin width. With 256 bins over a ±π range, one bin is about 1.4° of joint rotation.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Literal token output — pick up the cup (RT-2 style)</div>
+    <div class="code-block"><span class="c"># The model generates this token sequence left to right,</span>
+<span class="c"># one token at a time, language and action tokens in the same stream:</span>
+
+"pick" "up" "the" "cup" &lt;act_142&gt; &lt;act_091&gt; &lt;act_178&gt; &lt;act_203&gt; &lt;act_117&gt; &lt;act_088&gt; &lt;act_012&gt;
+<span class="c">#                        j1         j2         j3         j4         j5         j6         gripper</span></div>
+
+    <div class="token-strip">
+      <span class="tok wt">"pick"</span><span class="tok wt">"up"</span><span class="tok wt">"the"</span><span class="tok wt">"cup"</span>
+      <span class="tok at" title="joint 1 — bin 142">&lt;act_142&gt;</span>
+      <span class="tok at" title="joint 2 — bin 091">&lt;act_091&gt;</span>
+      <span class="tok at" title="joint 3 — bin 178">&lt;act_178&gt;</span>
+      <span class="tok at" title="joint 4 — bin 203">&lt;act_203&gt;</span>
+      <span class="tok at" title="joint 5 — bin 117">&lt;act_117&gt;</span>
+      <span class="tok at" title="joint 6 — bin 088">&lt;act_088&gt;</span>
+      <span class="tok at" title="gripper — bin 012">&lt;act_012&gt;</span>
+    </div>
+    <div style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:16px">← language tokens &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ← action tokens (hover to see which joint)</div>
+
+    <div class="section-label">Decoded back to joint angles</div>
+    <div class="code-block"><span class="c"># formula: angle = (bin_index / 255) × joint_range + joint_min</span>
+<span class="c"># example joint range: −π to +π rad</span>
+
+<span class="k">joint_1</span> = <span class="v">+0.11 rad</span>  <span class="c">← bin 142 / 255 × 6.28 − 3.14</span>
+<span class="k">joint_2</span> = <span class="v">−0.43 rad</span>  <span class="c">← bin  91</span>
+<span class="k">joint_3</span> = <span class="v">+0.82 rad</span>  <span class="c">← bin 178</span>
+<span class="k">joint_4</span> = <span class="v">+1.10 rad</span>  <span class="c">← bin 203</span>
+<span class="k">joint_5</span> = <span class="v">−0.09 rad</span>  <span class="c">← bin 117</span>
+<span class="k">joint_6</span> = <span class="v">−0.51 rad</span>  <span class="c">← bin  88</span>
+<span class="k">gripper</span> = <span class="v"> 0.05    </span>  <span class="c">← bin  12 / 255 → nearly open</span>
+
+<span class="c"># Resolution: 256 bins over ±π ≈ 0.025 rad per step ≈ 1.4° per step</span></div>
+
+    <div class="callout">
+      <strong>Why this approach exists:</strong> the LLM already knows how to generate tokens — language, code, and now actions all use the same mechanism. No new decoder architecture is needed. The trade-off is quantisation: bins are discrete, so fine-grained precision tasks (sub-millimetre insertion) are out of reach without dramatically increasing the number of bins, which inflates the vocabulary and slows training.
+    </div>
+  </div>
+
+  <!-- 03 DIFFUSION -->
+  <div class="panel" id="panel-diff" style="--panel-color:var(--diff)">
+    <div class="panel-num">03 · iterative denoising</div>
+    <div class="panel-title">Diffusion policy head</div>
+    <div class="panel-sub">Octo, HybridVLA, DexGraspVLA — fine-grained, temporally smooth control</div>
+
+    <div class="two-col">
+      <div>
+        <div class="col-label">The idea</div>
+        <div class="col-text">Instead of predicting an action directly, the model learns to remove noise. At inference you start with a trajectory of pure random noise and run K denoising steps. Each step is guided by the vision-language embedding, nudging the noisy trajectory a little closer to something physically meaningful. After K steps the noise has resolved into a clean, smooth action sequence.</div>
+      </div>
+      <div>
+        <div class="col-label">What the robot receives</div>
+        <div class="col-text">A full trajectory matrix — T timesteps × 7 joint values. All values are continuous floats. The iterative denoising process naturally produces smooth transitions between timesteps, because each step refines the whole trajectory at once rather than predicting each timestep independently. This smoothness matters in contact-rich tasks where sudden jumps cause slipping or damage.</div>
+      </div>
+    </div>
+
+    <div class="section-label">The trajectory at each denoising step — click to inspect</div>
+    <div class="diff-row" id="diff-row"></div>
+    <div id="diff-detail" style="font-family:var(--mono); font-size:11px; color:var(--muted); min-height:40px; margin-top:6px; line-height:1.7"></div>
+
+    <div class="divider"></div>
+
+    <div class="section-label">Final denoised output — sent to robot controller</div>
+    <div class="code-block"><span class="c"># Shape: [T timesteps × 7 joints] — continuous floats, no quantisation</span>
+
+<span class="k">trajectory</span>[t=0]  = [<span class="v">+0.034, −0.287, +0.741, +1.182, −0.073, +0.412, 0.04</span>]
+<span class="k">trajectory</span>[t=1]  = [<span class="v">+0.041, −0.301, +0.758, +1.197, −0.079, +0.421, 0.05</span>]
+<span class="k">trajectory</span>[t=2]  = [<span class="v">+0.049, −0.314, +0.772, +1.209, −0.084, +0.429, 0.07</span>]
+<span class="c"># ... values change smoothly across all timesteps ...</span>
+<span class="k">trajectory</span>[t=15] = [<span class="v">+0.198, −0.447, +0.921, +1.388, −0.142, +0.541, 0.91</span>]
+
+<span class="c"># Compare to MLP: MLP outputs one row. Diffusion outputs the whole table.</span>
+<span class="c"># Compare to autoregressive: no bins, no quantisation loss.</span></div>
+
+    <div class="callout">
+      <strong>Why diffusion is the most expressive:</strong> it can represent multimodal action distributions. If demonstrations show two valid grasps, diffusion captures both modes and samples one at inference. MLP would average them into an invalid middle. The cost is K forward passes through the network instead of one — typically 10 to 100 passes — making it slower than MLP or autoregressive heads.
+    </div>
+  </div>
+
+  <!-- 04 MPC -->
+  <div class="panel" id="panel-mpc" style="--panel-color:var(--mpc)">
+    <div class="panel-num">04 · plan + classical control</div>
+    <div class="panel-title">Planner and MPC head</div>
+    <div class="panel-sub">VoxPoser, LMM Planner Integration, FLaRe — decision-making in dynamic tasks</div>
+
+    <div class="two-col">
+      <div>
+        <div class="col-label">The idea</div>
+        <div class="col-text">The neural network does not output joint angles at all. It outputs a geometric plan — a cost map, a subgoal position, or a constraint set. A separate classical Model Predictive Control algorithm then solves an optimisation problem at each timestep to translate that plan into actual motor commands. Neural network handles perception and reasoning; MPC handles real-time motion generation.</div>
+      </div>
+      <div>
+        <div class="col-label">What the robot receives</div>
+        <div class="col-text">Motor commands from the MPC solver, not from the network. The MPC re-plans continuously, so the robot reacts to disturbances within its planning horizon. The network's output — the plan — is human-readable: you can inspect exactly what the model decided before the robot moves.</div>
+      </div>
+    </div>
+
+    <div class="section-label">VoxPoser — what the network outputs (not joint angles)</div>
+    <div class="code-block"><span class="c"># The network generates a 3D value map over the robot's workspace</span>
+<span class="c"># Shape: [64, 64, 64] voxels  — one score per point in space</span>
+<span class="c"># High value = good place to move end-effector toward</span>
+<span class="c"># Low value  = region to avoid</span>
+
+value_map[x=32, y=41, z=28] = <span class="v">+0.94</span>  <span class="c">← directly above the mug handle: go here</span>
+value_map[x=32, y=41, z=20] = <span class="v">+0.71</span>  <span class="c">← approach path, good</span>
+value_map[x=10, y=10, z=05] = <span class="v">−0.82</span>  <span class="c">← near table edge: avoid</span>
+value_map[x=00, y=00, z=00] = <span class="v">−1.00</span>  <span class="c">← collision zone</span>
+
+<span class="c"># This is the network's entire output. No joint angles yet.</span></div>
+
+    <div class="section-label">Then the MPC converts the plan to motor commands</div>
+    <div class="pipeline">
+      <div class="pipe-box">
+        <div class="pipe-label">network output</div>
+        <div class="pipe-val">3D value map<br>[64×64×64]<br>human-readable</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box">
+        <div class="pipe-label">MPC optimiser</div>
+        <div class="pipe-val">finds trajectory<br>maximising value<br>re-runs each step</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box">
+        <div class="pipe-label">robot controller</div>
+        <div class="pipe-val">joint torques<br>at control rate<br>actual motor commands</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>How it differs from the other three:</strong> in MLP, autoregressive, and diffusion, the neural network is what ultimately causes the robot to move — joint angles come directly from the network output. Here the network produces a plan and a classical algorithm does the motion generation. The plan is inspectable and safety constraints can be enforced in the MPC layer. The downside: if the plan is slightly wrong, the MPC cannot recover — it only sees the value map, not the intent behind it.
+    </div>
+  </div>
+
+</div>
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'mlp')  initMLP();
+  if (id === 'diff') initDiff();
+}
+
+function initMLP() {
+  const c = document.getElementById('mlp-bars');
+  if (!c || c.children.length) return;
+  const joints = [
+    {label:'joint 1 (shoulder)', val:'+0.03 rad', pct:52},
+    {label:'joint 2 (shoulder)', val:'−0.31 rad', pct:35},
+    {label:'joint 3 (elbow)',    val:'+0.74 rad', pct:62},
+    {label:'joint 4 (wrist 1)', val:'+1.18 rad', pct:69},
+    {label:'joint 5 (wrist 2)', val:'−0.07 rad', pct:48},
+    {label:'joint 6 (wrist 3)', val:'+0.41 rad', pct:57},
+    {label:'gripper',           val:'0.04 (open)', pct:4},
+  ];
+  joints.forEach(j => {
+    const row = document.createElement('div');
+    row.className = 'arm-row';
+    row.innerHTML = `<div class="arm-label">${j.label}</div><div class="arm-track"><div class="arm-fill" style="width:${j.pct}%"></div></div><div class="arm-val">${j.val}</div>`;
+    c.appendChild(row);
+  });
+}
+
+const diffSteps = [
+  { label:'step 0\nnoise', desc:'Pure Gaussian noise — random floats, no physical structure at all.', vals:['+1.82','−2.41','+0.33','−1.97','+2.11','−0.84','+1.54'] },
+  { label:'step 5',        desc:'Rough structure emerging — values trending toward the plausible joint range, but still very noisy.', vals:['+0.89','−1.21','+0.58','−0.94','+1.02','−0.51','+0.74'] },
+  { label:'step 10',       desc:'Coarse trajectory visible — joint ranges mostly plausible, but transitions between timesteps are still rough.', vals:['+0.29','−0.58','+0.69','+0.87','−0.18','+0.31','+0.21'] },
+  { label:'step 15',       desc:'Fine detail forming — smooth transitions between consecutive timesteps, values converging toward final answer.', vals:['+0.08','−0.34','+0.73','+1.14','−0.09','+0.40','+0.06'] },
+  { label:'step K\nclean', desc:'Final denoised trajectory — physically consistent, smooth. This is what gets sent to the robot.', vals:['+0.034','−0.287','+0.741','+1.182','−0.073','+0.412','0.04'] },
+];
+
+function initDiff() {
+  const row = document.getElementById('diff-row');
+  if (!row || row.children.length) return;
+  diffSteps.forEach((s, i) => {
+    const alpha = 0.18 + (i / (diffSteps.length - 1)) * 0.82;
+    const wrap = document.createElement('div');
+    wrap.className = 'diff-node';
+    wrap.innerHTML = `<div class="diff-circle" style="border-color:rgba(107,143,224,${alpha});color:rgba(107,143,224,${alpha})" onclick="showDiff(${i})">${s.label.replace('\n','<br>')}</div>`;
+    row.appendChild(wrap);
+    if (i < diffSteps.length - 1) {
+      const arr = document.createElement('div');
+      arr.className = 'diff-arrow';
+      arr.textContent = '→';
+      row.appendChild(arr);
+    }
+  });
+}
+
+function showDiff(i) {
+  const s = diffSteps[i];
+  document.getElementById('diff-detail').innerHTML =
+    `<span style="color:var(--diff)">${s.label.replace('\n',' ')}</span> — ${s.desc}<br>joint values at t=0 of trajectory: [${s.vals.join(', ')}]`;
+}
+
+initMLP();
+</script>
+</body>
+</html>
